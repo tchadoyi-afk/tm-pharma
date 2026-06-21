@@ -50,7 +50,8 @@ class SupabaseConnector extends PowerSyncBackendConnector {
       await transaction.complete();
     } on PostgrestException catch (e) {
       final code = e.code ?? '';
-      final isFatal = code.startsWith('22') || // type de données
+      final isFatal =
+          code.startsWith('22') || // type de données
           code.startsWith('23') || // contrainte d'intégrité
           code == '42501'; // violation RLS / droits
       if (isFatal) {

@@ -29,20 +29,27 @@ Archives : `CDC SaaS_Pharmacie V0.pdf` (ex-« OfficineOS », historique) + 4 PDF
 - À ~80 % de contexte : préparer la session suivante automatiquement (ce fichier + mémoire + tâches + commit si repo).
 
 ## État actuel
-- Phase : **S1 livré (socle).** Repo git initialisé (`C:\Claude\TM_Projects\TM_Pharma`, branche `main`, 1er commit `7c7ddd3`).
-- **Code en place** :
-  - `supabase/migrations/0001_core.sql` : tenants, users (liés `auth.users`), RBAC (roles/permissions/role_permissions/user_roles), `pharmacy_settings` (logo/identité/devise XOF-Togo·XAF-Gabon), `audit_log` immuable **chaîné par hash**, **RLS** stricte par `tenant_id` + habilitation.
-  - `supabase/migrations/0002_seed_permissions.sql` : catalogue global des permissions.
-  - `app/` : Flutter (Riverpod Notifier, go_router, i18n FR/EN, thème clair/sombre M3, écran d'accueil). `flutter analyze` OK, test OK.
-- ⏳ **Pas encore appliqué au cloud** : Supabase CLI/Docker absents ; migrations = fichiers. Le projet Supabase cloud (coût) attend le **feu vert PO**.
-- ⚠️ Incident 21/06 : disque `E:` déconnecté → tout est sur `C:`. (Repo git = sauvegarde désormais.)
+- Phase : **S1 + S2 livrés.** Repo git `C:\Claude\TM_Projects\TM_Pharma`, branche `main`. Commits : `7c7ddd3` (S1), `4218b36` (S2).
+- Plateformes : **Android + Web** (iOS repoussé). Une seule app Flutter.
+- **S1 — socle** :
+  - `supabase/migrations/0001_core.sql` : tenants, users (liés `auth.users`), RBAC, `pharmacy_settings` (logo/identité/devise XOF·XAF), `audit_log` immuable **chaîné par hash**, **RLS** + habilitation.
+  - `0002_seed_permissions.sql` : catalogue des permissions.
+  - `app/` : Flutter (Riverpod Notifier, go_router, i18n FR/EN, thème M3).
+- **S2 — sync offline (PowerSync)** :
+  - `0003_business_core.sql` : products, lots, sales, sale_items + RLS.
+  - `supabase/sync_rules.yaml` : bucket par tenant.
+  - `app/lib/core/sync/` : `schema.dart` (tables offline), `supabase_connector.dart` (upload CRUD + conflits **LWW**), `sync_service.dart` (base locale toujours ouverte, synchro si configurée), `config/env.dart` (--dart-define).
+  - `flutter analyze` OK, test OK.
+- ⏳ **Pas encore branché au cloud** : Supabase CLI/Docker absents. Migrations = fichiers, jamais appliquées. Projet Supabase + instance PowerSync = **coût → feu vert PO requis**.
+- ⚠️ Incident 21/06 : disque `E:` déconnecté → tout sur `C:` (repo git = sauvegarde).
 
 ## ▶ POINT DE REPRISE (prochaine session)
-Au choix du PO :
-1. **Provisionner Supabase** (a un coût) → appliquer 0001 + 0002, générer les types, tester la RLS d'isolation. *(via MCP Supabase ou installer la CLI)*
-2. **CI/CD** (reste de S1) : GitHub Actions `flutter analyze`+`test`, lint SQL.
-3. **Démarrer S2 — moteur de sync offline** (PowerSync + Drift) : le risque technique n°1.
+**Finir S2 puis enchaîner.** Au choix du PO :
+1. **Provisionner Supabase + PowerSync** (coût) → appliquer 0001/0002/0003, créer l'instance PowerSync avec `sync_rules.yaml`, configurer `env.json`, puis **test live** : créer une vente hors-ligne → vérifier la synchro sans perte (= jalon S2).
+2. **Reste de S2 (local, gratuit)** : couche **Drift typée** (drift_sqlite_async) par-dessus PowerSync + un écran/repo démo « créer une vente offline » pour exercer la file de sync, + CI/CD GitHub Actions.
+3. **Avancer S3 — Auth, RBAC fin & habilitations** (login + MFA, rôles, validation hiérarchique).
 
-> Reco Claude : enchaîner **S2 (sync)** pour lever le risque archi tôt ; le provisioning Supabase peut se faire juste avant (S2 a besoin d'une base réelle pour tester la synchro).
+> Reco Claude : faire **2** (couche Drift + démo offline, gratuit) tant que le provisioning cloud n'est pas validé ; puis **1** (provisioning + test live) pour clore officiellement le jalon S2.
 
 Outillage machine : git, Node/npm, Flutter/Dart (`C:\flutter`), VS Code ✓ · Supabase CLI, Docker ✗.
+Lancer l'app configurée : `flutter run --dart-define-from-file=env.json` (modèle : `app/.env.example`).

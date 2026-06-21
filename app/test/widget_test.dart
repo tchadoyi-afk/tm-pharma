@@ -4,8 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tm_pharma/main.dart';
 
 void main() {
-  testWidgets('L\'app démarre et affiche le nom TM Pharma',
-      (WidgetTester tester) async {
+  testWidgets('L\'app démarre et affiche le nom TM Pharma', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(const ProviderScope(child: TmPharmaApp()));
     await tester.pumpAndSettle();
 

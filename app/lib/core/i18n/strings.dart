@@ -42,8 +42,9 @@ class StringsDelegate extends LocalizationsDelegate<Strings> {
   const StringsDelegate();
 
   @override
-  bool isSupported(Locale locale) =>
-      Strings.supportedLocales.any((l) => l.languageCode == locale.languageCode);
+  bool isSupported(Locale locale) => Strings.supportedLocales.any(
+    (l) => l.languageCode == locale.languageCode,
+  );
 
   @override
   Future<Strings> load(Locale locale) async => Strings(locale);
