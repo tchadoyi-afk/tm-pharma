@@ -58,3 +58,63 @@ class PermissionSet {
   Set<String> get codes => _codes;
   bool get isEmpty => _codes.isEmpty;
 }
+
+/// Métadonnée d'affichage d'une permission (pour l'UI de gestion des rôles).
+class PermissionInfo {
+  const PermissionInfo(this.code, this.label, this.module);
+  final String code;
+  final String label;
+  final String module;
+}
+
+/// Catalogue présentable des permissions (miroir de `0002_seed_permissions`).
+const permissionCatalog = <PermissionInfo>[
+  PermissionInfo(Permissions.posSell, 'Encaisser une vente', 'Caisse'),
+  PermissionInfo(Permissions.posRefund, 'Rembourser', 'Caisse'),
+  PermissionInfo(
+    Permissions.posDiscountApply,
+    'Appliquer une remise',
+    'Caisse',
+  ),
+  PermissionInfo(Permissions.posCashClose, 'Clôturer la caisse', 'Caisse'),
+  PermissionInfo(Permissions.stockView, 'Consulter le stock', 'Stock'),
+  PermissionInfo(Permissions.stockAdjust, 'Ajuster le stock', 'Stock'),
+  PermissionInfo(Permissions.stockTransfer, 'Transférer', 'Stock'),
+  PermissionInfo(Permissions.stockReceive, 'Réceptionner', 'Stock'),
+  PermissionInfo(Permissions.productCreate, 'Créer un produit', 'Catalogue'),
+  PermissionInfo(Permissions.priceEdit, 'Modifier un prix', 'Catalogue'),
+  PermissionInfo(
+    Permissions.supplierManage,
+    'Gérer les fournisseurs',
+    'Achats',
+  ),
+  PermissionInfo(Permissions.purchaseOrder, 'Bon de commande', 'Achats'),
+  PermissionInfo(
+    Permissions.invoiceIssue,
+    'Émettre une facture',
+    'Facturation',
+  ),
+  PermissionInfo(
+    Permissions.reportFinancialView,
+    'Rapports financiers',
+    'Pilotage',
+  ),
+  PermissionInfo(
+    Permissions.traceLotView,
+    'Traçabilité d\'un lot',
+    'Traçabilité',
+  ),
+  PermissionInfo(Permissions.auditViewOwn, 'Voir ses actions', 'Traçabilité'),
+  PermissionInfo(Permissions.auditViewAll, 'Voir tout l\'audit', 'Traçabilité'),
+  PermissionInfo(
+    Permissions.traceExport,
+    'Exporter la traçabilité',
+    'Traçabilité',
+  ),
+  PermissionInfo(Permissions.userManage, 'Gérer utilisateurs & rôles', 'Admin'),
+  PermissionInfo(Permissions.settingsManage, 'Paramètres pharmacie', 'Admin'),
+  PermissionInfo(Permissions.aiAssistantUse, 'Assistant IA', 'IA'),
+];
+
+/// Tous les codes de permission (utile pour le mode dev local).
+final allPermissionCodes = permissionCatalog.map((p) => p.code).toSet();

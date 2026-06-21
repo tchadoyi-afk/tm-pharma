@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/app_providers.dart';
 import '../../core/i18n/strings.dart';
+import '../../core/rbac/permission_gate.dart';
+import '../../core/rbac/permissions.dart';
 
 /// Écran d'accueil temporaire — vérifie que le socle (thème, i18n, état) tourne.
 /// Sera remplacé par l'écran d'authentification (Sprint 3).
@@ -92,6 +94,15 @@ class HomeScreen extends ConsumerWidget {
                     icon: const Icon(Icons.point_of_sale),
                     label: const Text('Démo vente offline'),
                     onPressed: () => context.go('/pos-demo'),
+                  ),
+                  const SizedBox(height: 12),
+                  PermissionGate(
+                    permission: Permissions.userManage,
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.admin_panel_settings_outlined),
+                      label: const Text('Permissions & rôles'),
+                      onPressed: () => context.go('/admin/roles'),
+                    ),
                   ),
                 ],
               ),

@@ -29,7 +29,7 @@ Archives : `CDC SaaS_Pharmacie V0.pdf` (ex-« OfficineOS », historique) + 4 PDF
 - À ~80 % de contexte : préparer la session suivante automatiquement (ce fichier + mémoire + tâches + commit si repo).
 
 ## État actuel
-- Phase : **S1 + S2 + S2b livrés (sauf test live cloud).** Repo git `C:\Claude\TM_Projects\TM_Pharma`, branche `main`. Commits : `7c7ddd3` (S1), `4218b36` (S2), `34be20d` (démo+CI), `5f5e131` (Drift).
+- Phase : **S1, S2, S2b faits ; S3 entamé.** Repo git `C:\Claude\TM_Projects\TM_Pharma`, branche `main`. Commits : `7c7ddd3` (S1), `4218b36` (S2), `34be20d` (démo+CI), `5f5e131` (Drift), `af75472` (S3 auth+RBAC).
 - Plateformes : **Android + Web** (iOS repoussé). Une seule app Flutter.
 - **S1 — socle** :
   - `supabase/migrations/0001_core.sql` : tenants, users (liés `auth.users`), RBAC, `pharmacy_settings` (logo/identité/devise XOF·XAF), `audit_log` immuable **chaîné par hash**, **RLS** + habilitation.
@@ -44,16 +44,23 @@ Archives : `CDC SaaS_Pharmacie V0.pdf` (ex-« OfficineOS », historique) + 4 PDF
   - `app/lib/features/pos/` : `pos_repository.dart` (créer vente+ligne en local, watch, file d'upload) + `pos_demo_screen.dart` (route `/pos-demo`, accès depuis l'accueil) → prouve l'écriture **offline**.
   - `app/lib/core/db/app_database.dart` (+ `.g.dart`) : couche **Drift typée** sur la connexion PowerSync (table `Sales`). build_runner OK.
   - `.github/workflows/ci.yml` : format + analyze + test sur push/PR.
+- **S3 — auth + RBAC (entamé)** :
+  - `0004_my_permissions.sql` : RPC `my_permissions()`.
+  - `app/lib/core/auth/` : `AuthRepository` (signIn/out/state, tolérant hors config) + providers.
+  - `app/lib/core/rbac/` : `permissions.dart` (catalogue `Permissions` + `PermissionSet`), `rbac_providers.dart` (`permissionsProvider` via RPC, `watchCan`), `permission_gate.dart` (widget).
+  - `app/lib/features/auth/login_screen.dart` + garde go_router (`routerProvider`, redirect gardé par `Env.isConfigured`).
+  - Test unitaire `PermissionSet`. 4 tests verts.
+  - **Reste S3** : UI gestion des rôles (CRUD rôles + assignation permissions par tenant), validation hiérarchique, enrôlement MFA, création profil/tenant à l'inscription. Auth réelle = nécessite Supabase configuré.
 - ⏳ **Pas encore branché au cloud** : Supabase CLI/Docker absents. Migrations = fichiers, jamais appliquées. Projet Supabase + instance PowerSync = **coût → feu vert PO requis**. C'est ce qui manque pour clore officiellement le **jalon S2** (test live : vente offline → synchro sans perte).
 - ⚠️ Incident 21/06 : disque `E:` déconnecté → tout sur `C:` (repo git = sauvegarde).
 
 ## ▶ POINT DE REPRISE (prochaine session)
 Au choix du PO :
-1. **Provisionner Supabase + PowerSync** (coût) → appliquer 0001/0002/0003, créer l'instance PowerSync avec `sync_rules.yaml`, configurer `env.json` (modèle `app/.env.example`), puis **test live** : vente hors-ligne → synchro sans perte (= clôture jalon S2). + valider la couche Drift sur un vrai run device/web.
-2. **Avancer S3 — Auth, RBAC fin & habilitations** : login + MFA Supabase, écran d'auth, création des rôles par tenant à partir du catalogue de permissions, validation hiérarchique. (Peut se faire sans cloud pour l'UI, mais l'auth réelle a besoin de Supabase.)
+1. **Finir S3 en local** : UI gestion des rôles (CRUD + assignation permissions par tenant), validation hiérarchique, écrans MFA. Gratuit, avance bien.
+2. **Provisionner Supabase + PowerSync** (coût) → appliquer 0001→0004, instance PowerSync, `env.json`, puis **tests live** : auth réelle + vente offline→synchro (clôture jalon S2). + valider Drift sur device/web.
 3. **Pousser le repo sur GitHub** (déclenche la CI) — repo encore local uniquement.
 
-> Reco Claude : **1** (provisioning + test live) pour clore proprement S2 avant d'avancer ; sinon **3** (push GitHub) pour activer la CI tout de suite (gratuit).
+> Reco Claude : **1** (finir S3 en local) tant que le provisioning cloud n'est pas validé ; **3** (push GitHub) à faire bientôt pour la sauvegarde distante + CI.
 
 Outillage machine : git, Node/npm, Flutter/Dart (`C:\flutter`), VS Code ✓ · Supabase CLI, Docker ✗.
 Lancer l'app configurée : `flutter run --dart-define-from-file=env.json` (modèle : `app/.env.example`).

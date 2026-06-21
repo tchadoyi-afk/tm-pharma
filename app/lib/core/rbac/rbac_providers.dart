@@ -11,7 +11,9 @@ final permissionsProvider = FutureProvider<PermissionSet>((ref) async {
   // Dépend de l'état d'auth pour se rafraîchir au login/logout.
   ref.watch(authStateProvider);
 
-  if (!Env.isConfigured) return const PermissionSet.empty();
+  // Mode local/dev : tous les droits, pour explorer l'UI sans backend.
+  // En prod c'est la RPC `my_permissions` qui fait foi.
+  if (!Env.isConfigured) return PermissionSet(allPermissionCodes);
   final auth = ref.watch(authRepositoryProvider);
   if (!auth.isSignedIn) return const PermissionSet.empty();
 
