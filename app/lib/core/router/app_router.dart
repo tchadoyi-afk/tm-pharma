@@ -1,22 +1,64 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../auth/auth_repository.dart';
+import '../config/env.dart';
+import '../../features/auth/login_screen.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/pos/pos_demo_screen.dart';
 
-/// Routeur applicatif (go_router). S'étoffera au fil des sprints
-/// (auth, caisse, stocks, dashboard…).
-final appRouter = GoRouter(
-  initialLocation: '/',
-  routes: [
-    GoRoute(
-      path: '/',
-      name: 'home',
-      builder: (context, state) => const HomeScreen(),
-    ),
-    GoRoute(
-      path: '/pos-demo',
-      name: 'pos-demo',
-      builder: (context, state) => const PosDemoScreen(),
-    ),
-  ],
-);
+/// Routeur applicatif (go_router) avec garde d'authentification.
+/// En mode local (Supabase non configuré), la garde est désactivée pour
+/// permettre le dev/démo sans backend.
+final routerProvider = Provider<GoRouter>((ref) {
+  final auth = ref.watch(authRepositoryProvider);
+
+  return GoRouter(
+    initialLocation: '/',
+    refreshListenable: _GoRouterRefreshStream(auth.authStateChanges()),
+    redirect: (context, state) {
+      if (!Env.isConfigured) return null; // mode local : pas de garde
+      final loggedIn = auth.isSignedIn;
+      final atLogin = state.matchedLocation == '/login';
+      if (!loggedIn && !atLogin) return '/login';
+      if (loggedIn && atLogin) return '/';
+      return null;
+    },
+    routes: [
+      GoRoute(
+        path: '/login',
+        name: 'login',
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/',
+        name: 'home',
+        builder: (context, state) => const HomeScreen(),
+      ),
+      GoRoute(
+        path: '/pos-demo',
+        name: 'pos-demo',
+        builder: (context, state) => const PosDemoScreen(),
+      ),
+    ],
+  );
+});
+
+/// Rafraîchit le routeur quand l'état d'auth change.
+class _GoRouterRefreshStream extends ChangeNotifier {
+  _GoRouterRefreshStream(Stream<dynamic> stream) {
+    notifyListeners();
+    _sub = stream.asBroadcastStream().listen((_) => notifyListeners());
+  }
+
+  late final StreamSubscription<dynamic> _sub;
+
+  @override
+  void dispose() {
+    _sub.cancel();
+    super.dispose();
+  }
+}
