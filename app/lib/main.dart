@@ -5,10 +5,27 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/app_providers.dart';
 import 'core/i18n/strings.dart';
 import 'core/router/app_router.dart';
+import 'core/sync/sync_service.dart';
 import 'core/theme/app_theme.dart';
 
-void main() {
-  runApp(const ProviderScope(child: TmPharmaApp()));
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Base locale offline-first : toujours ouverte. La synchro réseau s'active
+  // si l'environnement est configuré (sinon mode local pur, sans crash).
+  final sync = SyncService();
+  try {
+    await sync.initialize();
+  } catch (e) {
+    debugPrint('Initialisation sync ignorée (mode dégradé) : $e');
+  }
+
+  runApp(
+    ProviderScope(
+      overrides: [syncServiceProvider.overrideWithValue(sync)],
+      child: const TmPharmaApp(),
+    ),
+  );
 }
 
 class TmPharmaApp extends ConsumerWidget {

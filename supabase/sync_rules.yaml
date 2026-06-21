@@ -1,0 +1,15 @@
+# ============================================================================
+# TM Pharma — Règles de synchronisation PowerSync
+# Isolation multi-tenant : chaque appareil ne reçoit QUE les données de la
+# pharmacie (tenant) de l'utilisateur connecté. Doublé par la RLS Postgres.
+# ============================================================================
+bucket_definitions:
+  by_tenant:
+    # tenant_id de l'utilisateur courant (depuis son JWT Supabase).
+    parameters: select tenant_id from users where id = request.user_id()
+    data:
+      - select * from products    where tenant_id = bucket.tenant_id
+      - select * from lots        where tenant_id = bucket.tenant_id
+      - select * from sales       where tenant_id = bucket.tenant_id
+      - select * from sale_items  where tenant_id = bucket.tenant_id
+      - select * from pharmacy_settings where tenant_id = bucket.tenant_id

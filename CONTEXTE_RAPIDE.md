@@ -29,15 +29,20 @@ Archives : `CDC SaaS_Pharmacie V0.pdf` (ex-« OfficineOS », historique) + 4 PDF
 - À ~80 % de contexte : préparer la session suivante automatiquement (ce fichier + mémoire + tâches + commit si repo).
 
 ## État actuel
-- Phase : **Cadrage terminé.** Programme de dev rédigé et validé (archi, IA, RBAC, KPIs, traçabilité, facturation, roadmap).
-- Dossier = docs uniquement (PDF CDC + modèle de données + `PROGRAMME_DEVELOPPEMENT.md` + ce fichier). **Pas encore de code, pas de repo git.**
-- ⚠️ Incident 21/06 : le disque `E:` (où les docs avaient été écrits) s'est déconnecté/remonté ; docs recréés sur `C:`. Penser à un **repo git + sauvegarde**.
+- Phase : **S1 livré (socle).** Repo git initialisé (`C:\Claude\TM_Projects\TM_Pharma`, branche `main`, 1er commit `7c7ddd3`).
+- **Code en place** :
+  - `supabase/migrations/0001_core.sql` : tenants, users (liés `auth.users`), RBAC (roles/permissions/role_permissions/user_roles), `pharmacy_settings` (logo/identité/devise XOF-Togo·XAF-Gabon), `audit_log` immuable **chaîné par hash**, **RLS** stricte par `tenant_id` + habilitation.
+  - `supabase/migrations/0002_seed_permissions.sql` : catalogue global des permissions.
+  - `app/` : Flutter (Riverpod Notifier, go_router, i18n FR/EN, thème clair/sombre M3, écran d'accueil). `flutter analyze` OK, test OK.
+- ⏳ **Pas encore appliqué au cloud** : Supabase CLI/Docker absents ; migrations = fichiers. Le projet Supabase cloud (coût) attend le **feu vert PO**.
+- ⚠️ Incident 21/06 : disque `E:` déconnecté → tout est sur `C:`. (Repo git = sauvegarde désormais.)
 
 ## ▶ POINT DE REPRISE (prochaine session)
-**Démarrer S1 — Socle technique & sécurité.** Actions :
-1. `git init` + sauvegarde (leçon incident disque E:).
-2. Créer le projet **Supabase** (env dev/prod) + schéma multi-tenant + **RLS**.
-3. Scaffold **Flutter** (Riverpod, routing, i18n FR/EN, thème) + `audit_log` chaîné de base + paramètres pharmacie (identité + logo).
-4. Enchaîner **S2 = moteur de sync PowerSync + Drift** (risque n°1 à lever tôt).
+Au choix du PO :
+1. **Provisionner Supabase** (a un coût) → appliquer 0001 + 0002, générer les types, tester la RLS d'isolation. *(via MCP Supabase ou installer la CLI)*
+2. **CI/CD** (reste de S1) : GitHub Actions `flutter analyze`+`test`, lint SQL.
+3. **Démarrer S2 — moteur de sync offline** (PowerSync + Drift) : le risque technique n°1.
 
-> Note : si tu préfères dérisquer l'archi avant tout, on peut faire le **PoC sync (S2)** en parallèle de S1.
+> Reco Claude : enchaîner **S2 (sync)** pour lever le risque archi tôt ; le provisioning Supabase peut se faire juste avant (S2 a besoin d'une base réelle pour tester la synchro).
+
+Outillage machine : git, Node/npm, Flutter/Dart (`C:\flutter`), VS Code ✓ · Supabase CLI, Docker ✗.
