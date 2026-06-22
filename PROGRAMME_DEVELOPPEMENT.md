@@ -24,6 +24,12 @@
 
 > ⚠️ La décision Supabase **diverge volontairement** du CDC v3 (qui imposait NestJS/VPS). Tout le reste du CDC (Flutter, Postgres, UUID, RLS, soft-delete, audit, offline-first) est conservé.
 
+> **Stratégie d'hébergement à coût minimal (décision 2026-06-22)** — contexte : marché cible (petites officines africaines) très sensible au coût récurrent en devise forte ; **PowerSync** (~250-300 $/mois) est identifié comme la ligne de coût la plus lourde du stack, disproportionnée pour un pilote à 1-5 pharmacies.
+> - **Phase pilote/développement** : self-hébergement Postgres+Auth (les briques open-source de Supabase) sur un VPS mutualisé bas coût (~10-20 $/mois, partagé entre toutes les pharmacies), **PowerSync remplacé par une synchro maison** (file d'upload + résolution de conflits LWW, dans l'esprit de ce qui existe déjà en embryon dans `app/lib/core/sync/`). Aucun investissement matériel pharmacie requis à ce stade.
+> - **Avant la mise en production réelle** : bascule vers **Supabase Cloud managé** (plan Pro, ~25 $/mois mutualisé) — migration prévue **facile et réversible** : même schéma Postgres, même Auth (composants open-source identiques), juste un changement d'URL/clé de connexion dans la config de l'app (`env.json`/`--dart-define`), pas de réécriture de code. Objectif : profiter de la maintenance managée (sauvegardes, sécurité) une fois le produit validé en pilote, sans avoir payé ce confort pendant la phase la plus fragile financièrement.
+> - Piste V2/V3 si le volume de pharmacies grandit fortement : boîtier local par pharmacie (Raspberry Pi/mini-PC, ~60-90 $ une fois) avec base locale + synchro différée vers le cloud central — argument commercial fort (« fonctionne même 1 semaine sans internet ») mais plus de travail de dev (sync différée) et de logistique (provisioning matériel). Non retenu pour le pilote initial, à réévaluer après les premiers retours terrain.
+> - Conséquence code : le chantier prioritaire avant le pilote devient le **remplacement de PowerSync** dans `app/lib/core/sync/` par la synchro maison — pas un changement de schéma SQL, mais un changement du mécanisme de transport/résolution de conflits.
+
 ---
 
 ## 1. Vision & objectifs
