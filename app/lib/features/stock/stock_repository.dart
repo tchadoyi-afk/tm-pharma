@@ -99,6 +99,20 @@ class StockRepository {
     return id;
   }
 
+  Future<void> updateSupplier(
+    String id, {
+    required String name,
+    String? phone,
+    String? email,
+  }) {
+    final now = DateTime.now().toUtc().toIso8601String();
+    return _db.execute(
+      'UPDATE suppliers SET name = ?, phone = ?, email = ?, updated_at = ? '
+      'WHERE id = ?',
+      [name, phone, email, now, id],
+    );
+  }
+
   /// Réceptionne une quantité (nouveau lot ou complément d'un lot existant
   /// par numéro de lot) et journalise le mouvement (traçabilité GS1).
   Future<void> receiveStock({

@@ -277,6 +277,8 @@ Brique de premier plan (adoption). Une nouvelle pharmacie doit être opérationn
 
 > **Licence par palier (décision 22/06/2026)** : MVP, V2 et V3 sont chacun un palier de licence. Le module **emploi du temps** (V2) et le module **RH/paie élargie** (V3) sont des add-ons sous licence distincte de la licence de base — la pharmacie doit souscrire séparément pour les activer. Gating technique posé dès le MVP (migration `0012_module_licensing.sql` : `tenants.licensed_modules` + RPC `has_licensed_module`), vide par défaut ; aucun code du tronc commun ne doit coder en dur l'accès à ces modules.
 
+> **Gestion des fournisseurs = MVP (décision 22/06/2026)**, pas V2 — c'est la base de l'approvisionnement (réception de stock, bons de commande), donc une dépendance directe du tronc commun. Carnet d'adresses fournisseurs (nom/téléphone/email) géré dans l'écran `Fournisseurs` sous permission `supplier.manage` (lecture sous `stock.view`). Le **portail fournisseurs** (échange de données structuré, suivi de commande côté fournisseur, EDI/API) reste un module V2/V3 plus avancé — l'abstraction `SupplierConnector` évoquée pour ça sera posée quand ce module sera designé.
+
 ### PHASE 4 — V4 Impact sectoriel
 - E-learning personnel officinal, certifications, bourse pharmaceutique continentale.
 

@@ -20,6 +20,7 @@ import '../../features/pos/pos_screen.dart';
 import '../../features/promotions/promotions_screen.dart';
 import '../../features/reorder/reorder_screen.dart';
 import '../../features/stock/stock_screen.dart';
+import '../../features/suppliers/suppliers_screen.dart';
 
 /// Routeur applicatif (go_router) avec garde d'authentification.
 /// En mode local (Supabase non configuré), la garde est désactivée pour
@@ -103,6 +104,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/audit',
         name: 'audit',
         builder: (context, state) => const AuditScreen(),
+      ),
+      GoRoute(
+        path: '/suppliers',
+        name: 'suppliers',
+        builder: (context, state) => const SuppliersScreen(),
       ),
       GoRoute(
         path: '/assistant',

@@ -133,6 +133,15 @@ class HomeScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                   PermissionGate(
+                    permission: Permissions.stockView,
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.local_shipping_outlined),
+                      label: const Text('Fournisseurs'),
+                      onPressed: () => context.go('/suppliers'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  PermissionGate(
                     permission: Permissions.settingsManage,
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.rocket_launch_outlined),
