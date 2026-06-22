@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/rbac/permission_gate.dart';
 import '../../core/rbac/permissions.dart';
 import '../../core/sync/sync_service.dart';
+import '../stock/stock_repository.dart';
 import 'product_model.dart';
 import 'products_repository.dart';
 
@@ -123,6 +124,14 @@ class _ProductTile extends StatelessWidget {
         children: [
           Text('${product.sellingPrice.toStringAsFixed(0)} XOF'),
           PermissionGate(
+            permission: Permissions.supplierManage,
+            child: IconButton(
+              icon: const Icon(Icons.local_shipping_outlined),
+              tooltip: 'Fournisseur par défaut',
+              onPressed: () => _pickDefaultSupplier(context, product),
+            ),
+          ),
+          PermissionGate(
             permission: Permissions.priceEdit,
             child: IconButton(
               icon: const Icon(Icons.edit_outlined),
@@ -133,6 +142,36 @@ class _ProductTile extends StatelessWidget {
       ),
       onLongPress: () => _attachBarcode(context, product),
     );
+  }
+
+  Future<void> _pickDefaultSupplier(BuildContext context, Product product) async {
+    final container = ProviderScope.containerOf(context);
+    final suppliers = await container
+        .read(stockRepositoryProvider)
+        .watchSuppliers()
+        .first;
+    if (!context.mounted) return;
+    final chosen = await showDialog<String?>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('Fournisseur par défaut'),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(context, null),
+            child: const Text('Aucun'),
+          ),
+          for (final s in suppliers)
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, s.id),
+              child: Text(s.name),
+            ),
+        ],
+      ),
+    );
+    if (!context.mounted) return;
+    await container
+        .read(stockRepositoryProvider)
+        .setDefaultSupplier(product.id, chosen);
   }
 
   Future<void> _editPrice(BuildContext context, Product product) async {

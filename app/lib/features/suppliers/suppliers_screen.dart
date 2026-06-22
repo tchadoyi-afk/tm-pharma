@@ -58,6 +58,8 @@ class SuppliersScreen extends ConsumerWidget {
                       subtitle: Text([
                         if (supplier.phone != null) supplier.phone!,
                         if (supplier.email != null) supplier.email!,
+                        if (supplier.leadTimeDays > 0)
+                          '${supplier.leadTimeDays} j de livraison',
                       ].join(' · ')),
                       trailing: PermissionGate(
                         permission: Permissions.supplierManage,
@@ -106,12 +108,16 @@ class _SupplierSheetState extends ConsumerState<_SupplierSheet> {
   late final _emailController = TextEditingController(
     text: widget.supplier?.email ?? '',
   );
+  late final _leadTimeController = TextEditingController(
+    text: widget.supplier?.leadTimeDays.toString() ?? '0',
+  );
 
   @override
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
+    _leadTimeController.dispose();
     super.dispose();
   }
 
@@ -120,6 +126,7 @@ class _SupplierSheetState extends ConsumerState<_SupplierSheet> {
     if (name.isEmpty) return;
     final phone = _phoneController.text.trim();
     final email = _emailController.text.trim();
+    final leadTimeDays = int.tryParse(_leadTimeController.text.trim()) ?? 0;
     final repo = ref.read(stockRepositoryProvider);
     if (widget.supplier == null) {
       await repo.createSupplier(
@@ -127,6 +134,7 @@ class _SupplierSheetState extends ConsumerState<_SupplierSheet> {
         name: name,
         phone: phone.isEmpty ? null : phone,
         email: email.isEmpty ? null : email,
+        leadTimeDays: leadTimeDays,
       );
     } else {
       await repo.updateSupplier(
@@ -134,6 +142,7 @@ class _SupplierSheetState extends ConsumerState<_SupplierSheet> {
         name: name,
         phone: phone.isEmpty ? null : phone,
         email: email.isEmpty ? null : email,
+        leadTimeDays: leadTimeDays,
       );
     }
     if (mounted) Navigator.pop(context);
@@ -173,6 +182,15 @@ class _SupplierSheetState extends ConsumerState<_SupplierSheet> {
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
               decoration: const InputDecoration(labelText: 'Email'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _leadTimeController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Délai de livraison habituel',
+                suffixText: 'jours',
+              ),
             ),
             const SizedBox(height: 16),
             FilledButton(onPressed: _save, child: const Text('Enregistrer')),

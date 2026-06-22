@@ -10,6 +10,7 @@ class Product {
     this.category,
     this.referenceId,
     this.lowStockThreshold = 0,
+    this.defaultSupplierId,
   });
 
   final String id;
@@ -21,6 +22,8 @@ class Product {
   final String? referenceId;
   final double sellingPrice;
   final int lowStockThreshold;
+  /// Fournisseur par défaut pour le réappro (réappro affiné).
+  final String? defaultSupplierId;
 
   factory Product.fromRow(Map<String, Object?> row) => Product(
     id: row['id'] as String,
@@ -32,6 +35,7 @@ class Product {
     referenceId: row['reference_id'] as String?,
     sellingPrice: (row['selling_price'] as num?)?.toDouble() ?? 0,
     lowStockThreshold: (row['low_stock_threshold'] as num?)?.toInt() ?? 0,
+    defaultSupplierId: row['default_supplier_id'] as String?,
   );
 }
 

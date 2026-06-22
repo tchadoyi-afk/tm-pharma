@@ -9,9 +9,11 @@ import '../stock/stock_repository.dart';
 import 'purchase_order_repository.dart';
 import 'reorder_suggestion.dart';
 
-/// Suggestions de réappro (Sprint 10) : produits sous le seuil bas, avec
-/// quantité suggérée, et génération d'un bon de commande (DRAFT) à partir
-/// des suggestions sélectionnées.
+/// Suggestions de réappro (Sprint 10, affiné) : produits sous le point de
+/// commande (seuil bas, ou vélocité de vente × délai fournisseur si connus),
+/// avec quantité suggérée couvrant le délai + marge de sécurité. Génère un
+/// bon de commande (DRAFT) par fournisseur à partir des suggestions
+/// sélectionnées.
 class ReorderScreen extends ConsumerStatefulWidget {
   const ReorderScreen({super.key});
 
@@ -24,21 +26,33 @@ class ReorderScreen extends ConsumerStatefulWidget {
 class _ReorderScreenState extends ConsumerState<ReorderScreen> {
   final Set<String> _selected = {};
 
-  Future<void> _createOrder(List<ReorderSuggestion> suggestions) async {
+  Future<void> _createOrders(List<ReorderSuggestion> suggestions) async {
     final chosen = suggestions
         .where((s) => _selected.contains(s.productId))
         .toList();
     if (chosen.isEmpty) return;
-    await ref
-        .read(purchaseOrderRepositoryProvider)
-        .createFromSuggestions(
-          tenantId: ReorderScreen.demoTenantId,
-          suggestions: chosen,
-        );
+    final bySupplier = <String?, List<ReorderSuggestion>>{};
+    for (final s in chosen) {
+      bySupplier.putIfAbsent(s.supplierId, () => []).add(s);
+    }
+    final repo = ref.read(purchaseOrderRepositoryProvider);
+    for (final entry in bySupplier.entries) {
+      await repo.createFromSuggestions(
+        tenantId: ReorderScreen.demoTenantId,
+        suggestions: entry.value,
+        supplierId: entry.key,
+      );
+    }
     setState(() => _selected.clear());
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Bon de commande créé.')),
+        SnackBar(
+          content: Text(
+            bySupplier.length > 1
+                ? '${bySupplier.length} bons de commande créés (1 par fournisseur).'
+                : 'Bon de commande créé.',
+          ),
+        ),
       );
     }
   }
@@ -63,64 +77,75 @@ class _ReorderScreenState extends ConsumerState<ReorderScreen> {
               stream: ref.read(stockRepositoryProvider).watchStockLines(),
               builder: (context, snap) {
                 final lines = snap.data ?? const [];
-                final suggestions = computeReorderSuggestions(
-                  lines
-                      .map(
-                        (l) => ReorderStockLine(
-                          productId: l.productId,
-                          productName: l.productName,
-                          quantity: l.quantity,
-                          lowStockThreshold: l.lowStockThreshold,
-                        ),
-                      )
-                      .toList(),
-                );
-                if (suggestions.isEmpty) {
-                  return const Center(
-                    child: Text('Aucune suggestion : stocks au-dessus du seuil.'),
-                  );
-                }
-                return Column(
-                  children: [
-                    Expanded(
-                      child: ListView.builder(
-                        itemCount: suggestions.length,
-                        itemBuilder: (context, i) {
-                          final s = suggestions[i];
-                          return CheckboxListTile(
-                            value: _selected.contains(s.productId),
-                            onChanged: (v) => setState(() {
-                              if (v ?? false) {
-                                _selected.add(s.productId);
-                              } else {
-                                _selected.remove(s.productId);
-                              }
-                            }),
-                            title: Text(s.productName),
-                            subtitle: Text(
-                              'Stock actuel : ${s.currentQuantity} · '
-                              'Suggéré : ${s.suggestedQuantity}',
+                return FutureBuilder<Map<String, double>>(
+                  future: ref.read(stockRepositoryProvider).getDailySalesVelocity(),
+                  builder: (context, velocitySnap) {
+                    final velocity = velocitySnap.data ?? const {};
+                    final suggestions = computeReorderSuggestions(
+                      lines
+                          .map(
+                            (l) => ReorderStockLine(
+                              productId: l.productId,
+                              productName: l.productName,
+                              quantity: l.quantity,
+                              lowStockThreshold: l.lowStockThreshold,
+                              dailyVelocity: velocity[l.productId] ?? 0,
+                              leadTimeDays: l.supplierLeadTimeDays,
+                              supplierId: l.defaultSupplierId,
+                              supplierName: l.defaultSupplierName,
                             ),
-                          );
-                        },
-                      ),
-                    ),
-                    SafeArea(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: PermissionGate(
-                          permission: Permissions.purchaseOrder,
-                          child: FilledButton.icon(
-                            icon: const Icon(Icons.shopping_cart_checkout),
-                            label: const Text('Créer le bon de commande'),
-                            onPressed: _selected.isEmpty
-                                ? null
-                                : () => _createOrder(suggestions),
+                          )
+                          .toList(),
+                    );
+                    if (suggestions.isEmpty) {
+                      return const Center(
+                        child: Text('Aucune suggestion : stocks au-dessus du seuil.'),
+                      );
+                    }
+                    return Column(
+                      children: [
+                        Expanded(
+                          child: ListView.builder(
+                            itemCount: suggestions.length,
+                            itemBuilder: (context, i) {
+                              final s = suggestions[i];
+                              return CheckboxListTile(
+                                value: _selected.contains(s.productId),
+                                onChanged: (v) => setState(() {
+                                  if (v ?? false) {
+                                    _selected.add(s.productId);
+                                  } else {
+                                    _selected.remove(s.productId);
+                                  }
+                                }),
+                                title: Text(s.productName),
+                                subtitle: Text(
+                                  'Stock actuel : ${s.currentQuantity} · '
+                                  'Suggéré : ${s.suggestedQuantity}'
+                                  '${s.supplierName != null ? ' · ${s.supplierName}' : ''}',
+                                ),
+                              );
+                            },
                           ),
                         ),
-                      ),
-                    ),
-                  ],
+                        SafeArea(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: PermissionGate(
+                              permission: Permissions.purchaseOrder,
+                              child: FilledButton.icon(
+                                icon: const Icon(Icons.shopping_cart_checkout),
+                                label: const Text('Créer le(s) bon(s) de commande'),
+                                onPressed: _selected.isEmpty
+                                    ? null
+                                    : () => _createOrders(suggestions),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 );
               },
             ),

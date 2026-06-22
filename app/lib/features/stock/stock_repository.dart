@@ -14,19 +14,57 @@ class StockRepository {
   static const _uuid = Uuid();
 
   /// Stock courant par produit (somme des lots), pour repérer les ruptures.
+  /// Inclut le fournisseur par défaut du produit (réappro affiné).
   Stream<List<StockLine>> watchStockLines() {
     return _db
         .watch(
           'SELECT p.id AS product_id, p.name AS name, '
           'p.low_stock_threshold AS low_stock_threshold, '
+          'p.default_supplier_id AS default_supplier_id, '
+          's.name AS supplier_name, s.lead_time_days AS supplier_lead_time_days, '
           'COALESCE(SUM(l.quantity), 0) AS total_quantity '
           'FROM products p '
           'LEFT JOIN lots l ON l.product_id = p.id AND l.deleted_at IS NULL '
+          'LEFT JOIN suppliers s ON s.id = p.default_supplier_id '
           'WHERE p.deleted_at IS NULL '
-          'GROUP BY p.id, p.name, p.low_stock_threshold '
+          'GROUP BY p.id, p.name, p.low_stock_threshold, p.default_supplier_id, '
+          's.name, s.lead_time_days '
           'ORDER BY p.name',
         )
         .map((rs) => rs.map(StockLine.fromRow).toList());
+  }
+
+  /// Vélocité de vente moyenne par jour, par produit, sur les `windowDays`
+  /// derniers jours (pour affiner la quantité suggérée au réappro plutôt
+  /// que le seuil bas seul).
+  Future<Map<String, double>> getDailySalesVelocity({int windowDays = 30}) async {
+    final since = DateTime.now()
+        .toUtc()
+        .subtract(Duration(days: windowDays))
+        .toIso8601String();
+    final rows = await _db.getAll(
+      'SELECT l.product_id AS product_id, SUM(si.quantity) AS qty '
+      'FROM sale_items si '
+      'JOIN lots l ON l.id = si.lot_id '
+      'JOIN sales s ON s.id = si.sale_id '
+      'WHERE si.deleted_at IS NULL AND s.sold_at >= ? '
+      'GROUP BY l.product_id',
+      [since],
+    );
+    return {
+      for (final r in rows)
+        r['product_id'] as String:
+            ((r['qty'] as num?)?.toDouble() ?? 0) / windowDays,
+    };
+  }
+
+  /// Associe un fournisseur par défaut à un produit (réappro affiné).
+  Future<void> setDefaultSupplier(String productId, String? supplierId) {
+    final now = DateTime.now().toUtc().toIso8601String();
+    return _db.execute(
+      'UPDATE products SET default_supplier_id = ?, updated_at = ? WHERE id = ?',
+      [supplierId, now, productId],
+    );
   }
 
   Stream<List<Lot>> watchLots(String productId) {
@@ -88,13 +126,15 @@ class StockRepository {
     required String name,
     String? phone,
     String? email,
+    int leadTimeDays = 0,
   }) async {
     final id = _uuid.v4();
     final now = DateTime.now().toUtc().toIso8601String();
     await _db.execute(
-      'INSERT INTO suppliers (id, tenant_id, name, phone, email, created_at, updated_at) '
-      'VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [id, tenantId, name, phone, email, now, now],
+      'INSERT INTO suppliers (id, tenant_id, name, phone, email, lead_time_days, '
+      'created_at, updated_at) '
+      'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [id, tenantId, name, phone, email, leadTimeDays, now, now],
     );
     return id;
   }
@@ -104,12 +144,13 @@ class StockRepository {
     required String name,
     String? phone,
     String? email,
+    int leadTimeDays = 0,
   }) {
     final now = DateTime.now().toUtc().toIso8601String();
     return _db.execute(
-      'UPDATE suppliers SET name = ?, phone = ?, email = ?, updated_at = ? '
-      'WHERE id = ?',
-      [name, phone, email, now, id],
+      'UPDATE suppliers SET name = ?, phone = ?, email = ?, lead_time_days = ?, '
+      'updated_at = ? WHERE id = ?',
+      [name, phone, email, leadTimeDays, now, id],
     );
   }
 
