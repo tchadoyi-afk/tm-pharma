@@ -4,6 +4,7 @@ import 'package:printing/printing.dart';
 
 import '../../core/rbac/permission_gate.dart';
 import '../../core/rbac/permissions.dart';
+import '../../core/scanning/barcode_scanner_sheet.dart';
 import '../../core/sync/sync_service.dart';
 import '../catalog/product_model.dart';
 import '../catalog/products_repository.dart';
@@ -281,6 +282,17 @@ class _CheckoutView extends ConsumerWidget {
                   ),
                   onChanged: onSearchChanged,
                 ),
+              ),
+              const SizedBox(width: 8),
+              IconButton.filledTonal(
+                icon: const Icon(Icons.camera_alt_outlined),
+                tooltip: 'Scanner avec la caméra',
+                onPressed: () async {
+                  final code = await showBarcodeScannerSheet(context);
+                  if (code == null) return;
+                  searchController.text = code;
+                  onSearchChanged(code);
+                },
               ),
               const SizedBox(width: 8),
               PermissionGate(

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/rbac/permission_gate.dart';
 import '../../core/rbac/permissions.dart';
+import '../../core/scanning/barcode_scanner_sheet.dart';
 import '../../core/sync/sync_service.dart';
 import '../catalog/product_model.dart';
 import '../catalog/products_repository.dart';
@@ -188,13 +189,30 @@ class _ReceiveStockSheetState extends ConsumerState<_ReceiveStockSheet> {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: _gs1Controller,
-              decoration: const InputDecoration(
-                labelText: 'Scanner / coller le code GS1-128',
-                prefixIcon: Icon(Icons.qr_code_scanner),
-              ),
-              onChanged: _onGs1Scanned,
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _gs1Controller,
+                    decoration: const InputDecoration(
+                      labelText: 'Scanner / coller le code GS1-128',
+                      prefixIcon: Icon(Icons.qr_code_scanner),
+                    ),
+                    onChanged: _onGs1Scanned,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton.filledTonal(
+                  icon: const Icon(Icons.camera_alt_outlined),
+                  tooltip: 'Scanner avec la caméra',
+                  onPressed: () async {
+                    final code = await showBarcodeScannerSheet(context);
+                    if (code == null) return;
+                    _gs1Controller.text = code;
+                    _onGs1Scanned(code);
+                  },
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             TextField(

@@ -49,6 +49,7 @@ dependencies:
   pdf: ^3.13.0
   esc_pos_utils_plus: ^2.0.4
   printing: ^5.15.0
+  mobile_scanner: ^7.2.0
 
 dev_dependencies:
   flutter_test:
