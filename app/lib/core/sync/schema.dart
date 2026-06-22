@@ -58,6 +58,7 @@ final powerSyncSchema = Schema([
   Table('sales', [
     Column.text('tenant_id'),
     Column.text('user_id'),
+    Column.text('cash_session_id'),
     Column.real('total_amount'),
     Column.text('status'),
     Column.text('payment_method'),
@@ -122,6 +123,23 @@ final powerSyncSchema = Schema([
     indexes: [
       Index('movement_product', [IndexedColumn('product_id')]),
       Index('movement_lot', [IndexedColumn('lot_id')]),
+    ],
+  ),
+  Table(
+    'cash_sessions',
+    [
+      Column.text('tenant_id'),
+      Column.text('user_id'),
+      Column.text('status'),
+      Column.real('opening_amount'),
+      Column.real('closing_amount'),
+      Column.text('opened_at'),
+      Column.text('closed_at'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: [
+      Index('cash_session_tenant', [IndexedColumn('tenant_id')]),
     ],
   ),
 ]);

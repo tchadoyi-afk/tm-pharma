@@ -90,6 +90,15 @@ class HomeScreen extends ConsumerWidget {
                         ref.read(themeModeProvider.notifier).set(sel.first),
                   ),
                   const SizedBox(height: 32),
+                  PermissionGate(
+                    permission: Permissions.posSell,
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.point_of_sale),
+                      label: const Text('Caisse'),
+                      onPressed: () => context.go('/pos'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   OutlinedButton.icon(
                     icon: const Icon(Icons.point_of_sale),
                     label: const Text('Démo vente offline'),

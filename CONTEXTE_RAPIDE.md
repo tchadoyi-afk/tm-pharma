@@ -29,7 +29,15 @@ Archives : `CDC SaaS_Pharmacie V0.pdf` (ex-« OfficineOS », historique) + 4 PDF
 - À ~80 % de contexte : préparer la session suivante automatiquement (ce fichier + mémoire + tâches + commit si repo).
 
 ## État actuel
-- Phase : **S1, S2, S2b, S3, S4, S5 faits ; S6 fait en local** (reste = pièces cloud). Repo git `C:\Claude\TM_Projects\TM_Pharma`, branche `main` (+ poussé sur GitHub). Commits : `7c7ddd3` (S1), `4218b36` (S2), `34be20d` (démo+CI), `5f5e131` (Drift), `af75472` (S3 auth+RBAC), `8b85211` (S3 validation+rôles), `7783d4c` (doc), S4, S5, puis S6 (ce commit).
+- Phase : **S1, S2, S2b, S3, S4, S5, S6 faits ; S7 fait en local** (reste = pièces cloud). Repo git `C:\Claude\TM_Projects\TM_Pharma`, branche `main` (+ poussé sur GitHub). Commits : `7c7ddd3` (S1), `4218b36` (S2), `34be20d` (démo+CI), `5f5e131` (Drift), `af75472` (S3 auth+RBAC), `8b85211` (S3 validation+rôles), `7783d4c` (doc), S4, S5, S6, puis S7 (ce commit).
+- **S7 — POS offline-first (caisse)** :
+  - `0008_pos.sql` : `cash_sessions` (ouverture/clôture, total calculé depuis les ventes — jamais saisi à la main), `sales.cash_session_id`.
+  - `sync_rules.yaml` : `cash_sessions` ajouté au bucket `by_tenant`.
+  - `app/lib/core/sync/schema.dart` : table `cash_sessions` + colonne `sales.cash_session_id` côté PowerSync local.
+  - `app/lib/features/pos/` : `cart_model.dart` (panier immuable, add/remove par produit), `fefo.dart` (sélection FEFO — prélève dans le lot qui périme le plus tôt), `pos_repository.dart` étendu (`openCashSession`/`closeCashSession`/`checkout` : résout le lot FEFO par ligne avant toute écriture, décrémente la quantité, journalise vente+lignes ; lève `InsufficientStockException` si aucun lot ne couvre seul la quantité), `pos_screen.dart` (recherche/scan produit, panier, encaissement espèces sous `pos.sell`, clôture sous `pos.cash.close`).
+  - Route `/pos` + bouton accueil sous `PermissionGate(pos.sell)` (la démo S2 `/pos-demo` reste accessible).
+  - Tests : `cart_model_test.dart`, `fefo_test.dart` (choix du lot le plus proche de la péremption, lots sans date priorisés en dernier, stock insuffisant).
+  - ✅ Vérifié (Flutter 3.44.2/Dart 3.12.2) : `flutter analyze` → 0 issue ; `flutter test` → 35/35 passés.
 - **S6 — Reprise de données / onboarding** :
   - Pas de migration DB (réutilise `products`/`lots`/`stock_movements` existants).
   - `app/lib/features/onboarding/` : `csv_import.dart` (parseur CSV RFC 4180 minimal sans dépendance externe, `parseProductCsv` colonnes nom/code_barres/prix/dci/categorie, `markDuplicates` doublons internes + existants), `onboarding_repository.dart` (import en masse → produits créés, inventaire initial → lots de départ), `onboarding_screen.dart` (assistant en 2 étapes : import CSV collé avec prévisu/doublons signalés, puis saisie des quantités de départ par produit importé).

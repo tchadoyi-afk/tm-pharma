@@ -12,6 +12,7 @@ import '../../features/catalog/catalog_screen.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/onboarding/onboarding_screen.dart';
 import '../../features/pos/pos_demo_screen.dart';
+import '../../features/pos/pos_screen.dart';
 import '../../features/stock/stock_screen.dart';
 
 /// Routeur applicatif (go_router) avec garde d'authentification.
@@ -46,6 +47,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/pos-demo',
         name: 'pos-demo',
         builder: (context, state) => const PosDemoScreen(),
+      ),
+      GoRoute(
+        path: '/pos',
+        name: 'pos',
+        builder: (context, state) => const PosScreen(),
       ),
       GoRoute(
         path: '/admin/roles',
