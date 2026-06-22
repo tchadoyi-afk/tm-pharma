@@ -29,7 +29,16 @@ Archives : `CDC SaaS_Pharmacie V0.pdf` (ex-« OfficineOS », historique) + 4 PDF
 - À ~80 % de contexte : préparer la session suivante automatiquement (ce fichier + mémoire + tâches + commit si repo).
 
 ## État actuel
-- Phase : **S1, S2, S2b faits ; S3 fait en local** (reste = pièces cloud). Repo git `C:\Claude\TM_Projects\TM_Pharma`, branche `main`. Commits : `7c7ddd3` (S1), `4218b36` (S2), `34be20d` (démo+CI), `5f5e131` (Drift), `af75472` (S3 auth+RBAC), `8b85211` (S3 validation+rôles). **8 tests verts.**
+- Phase : **S1, S2, S2b, S3 faits ; S4 fait en local** (reste = pièces cloud). Repo git `C:\Claude\TM_Projects\TM_Pharma`, branche `main` (+ poussé sur GitHub). Commits : `7c7ddd3` (S1), `4218b36` (S2), `34be20d` (démo+CI), `5f5e131` (Drift), `af75472` (S3 auth+RBAC), `8b85211` (S3 validation+rôles), `7783d4c` (doc), puis S4 (ce commit).
+- **S4 — Catalogue & référentiel produits** :
+  - `0005_catalog.sql` : `reference_products` (catalogue DCI global, RLS lecture authentifiée) + colonnes `products.dci_name/unit/category/reference_id`.
+  - `0006_seed_reference_catalog.sql` : 10 médicaments courants pré-chargés (DCI + code-barres).
+  - `sync_rules.yaml` : bucket global `reference_catalog` (hors partition tenant).
+  - `app/lib/core/sync/schema.dart` : colonnes catalogue + table `reference_products` côté PowerSync local.
+  - `app/lib/features/catalog/` : `product_model.dart` (+ `normalizeBarcode`), `products_repository.dart` (recherche nom/DCI/code-barres, création produit depuis le référentiel ou en saisie libre, association code-barres au vol, édition prix), `catalog_screen.dart` (recherche instantanée, FAB ajout sous `product.create`, édition prix sous `price.edit`).
+  - Route `/catalog` + bouton accueil sous `PermissionGate(stock.view)`.
+  - Tests : `product_model_test.dart` (normalisation code-barres + parsing).
+  - ⚠️ **Non exécuté** : `flutter analyze`/`flutter test` n'ont pas pu tourner dans cette session (toolchain Flutter absente de l'environnement d'exécution) — à vérifier en priorité à la reprise.
 - Plateformes : **Android + Web** (iOS repoussé). Une seule app Flutter.
 - **S1 — socle** :
   - `supabase/migrations/0001_core.sql` : tenants, users (liés `auth.users`), RBAC, `pharmacy_settings` (logo/identité/devise XOF·XAF), `audit_log` immuable **chaîné par hash**, **RLS** + habilitation.
@@ -57,12 +66,12 @@ Archives : `CDC SaaS_Pharmacie V0.pdf` (ex-« OfficineOS », historique) + 4 PDF
 - ⚠️ Incident 21/06 : disque `E:` déconnecté → tout sur `C:` (repo git = sauvegarde).
 
 ## ▶ POINT DE REPRISE (prochaine session)
-S3 local terminé. Au choix du PO :
-1. **Démarrer S4 — Catalogue & référentiel produits** (en local) : table/écrans produits, recherche, catalogue de référence DCI. Gratuit, enchaîne bien.
-2. **Provisionner Supabase + PowerSync** (coût) → appliquer 0001→0004, instance PowerSync, `env.json`, puis valider en live : auth + MFA + CRUD rôles + vente offline→synchro (clôture S2 et pièces cloud de S3).
-3. **Pousser le repo sur GitHub** (déclenche la CI) — repo encore local uniquement.
+S4 fait en local (catalogue & référentiel DCI). **Priorité immédiate : lancer `flutter analyze` + `flutter test` (app/)** — pas pu être vérifié dans cette session (pas de Flutter dans l'environnement d'exécution). Corriger toute erreur avant de poursuivre.
+Ensuite, au choix du PO :
+1. **S5 — Stocks & lots + scan GS1** : mouvements de stock, fournisseurs, seuils, réception, capture GS1 (lot/péremption/GTIN). Gratuit, enchaîne bien sur le catalogue.
+2. **Provisionner Supabase + PowerSync** (coût) → appliquer 0001→0006, instance PowerSync, `env.json`, puis valider en live (auth + MFA + CRUD rôles + vente offline→synchro + catalogue partagé).
 
-> Reco Claude : **1** (S4 en local) pour garder l'élan ; **3** (push GitHub) à faire bientôt (sauvegarde distante + CI).
+> Reco Claude : **vérifier S4** (analyze/test) en tout premier ; puis **1** (S5) pour garder l'élan.
 
 Outillage machine : git, Node/npm, Flutter/Dart (`C:\flutter`), VS Code ✓ · Supabase CLI, Docker ✗.
 Lancer l'app configurée : `flutter run --dart-define-from-file=env.json` (modèle : `app/.env.example`).

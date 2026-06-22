@@ -8,6 +8,7 @@ import '../auth/auth_repository.dart';
 import '../config/env.dart';
 import '../../features/admin/roles_screen.dart';
 import '../../features/auth/login_screen.dart';
+import '../../features/catalog/catalog_screen.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/pos/pos_demo_screen.dart';
 
@@ -48,6 +49,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/admin/roles',
         name: 'admin-roles',
         builder: (context, state) => const RolesScreen(),
+      ),
+      GoRoute(
+        path: '/catalog',
+        name: 'catalog',
+        builder: (context, state) => const CatalogScreen(),
       ),
     ],
   );

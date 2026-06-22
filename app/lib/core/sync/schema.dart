@@ -10,6 +10,10 @@ final powerSyncSchema = Schema([
       Column.text('tenant_id'),
       Column.text('barcode'),
       Column.text('name'),
+      Column.text('dci_name'),
+      Column.text('unit'),
+      Column.text('category'),
+      Column.text('reference_id'),
       Column.real('selling_price'),
       Column.text('created_at'),
       Column.text('updated_at'),
@@ -17,6 +21,21 @@ final powerSyncSchema = Schema([
     ],
     indexes: [
       Index('product_tenant', [IndexedColumn('tenant_id')]),
+      Index('product_barcode', [IndexedColumn('barcode')]),
+    ],
+  ),
+  Table(
+    'reference_products',
+    [
+      Column.text('dci_name'),
+      Column.text('barcode'),
+      Column.text('unit'),
+      Column.text('category'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: [
+      Index('reference_product_barcode', [IndexedColumn('barcode')]),
     ],
   ),
   Table(
