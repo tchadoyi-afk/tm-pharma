@@ -270,10 +270,12 @@ Brique de premier plan (adoption). Une nouvelle pharmacie doit être opérationn
 > Le **durcissement (sécurité) est un critère de sortie du MVP, pas une option.**
 
 ### PHASE 2 — V2 Croissance & RH (post-MVP)
-- App mobile dirigeant dédiée, **paiements Mobile Money** (Togo + Gabon), pointage RH (QR/NFC), planning/congés, portail fournisseurs, **prévisions IA avancées**, validation hiérarchique, anti-fraude ML.
+- App mobile dirigeant dédiée, **paiements Mobile Money** (Togo + Gabon), pointage RH (QR/NFC), **planning/emploi du temps du personnel** (module sous licence séparée, non inclus dans la licence MVP), portail fournisseurs, **prévisions IA avancées**, validation hiérarchique, anti-fraude ML.
 
 ### PHASE 3 — V3 Écosystème B2B
-- Marketplace pharmaceutique, centrale d'achat, comparateur fournisseurs, téléconsultation, e-prescription, livraison, visiteurs médicaux, **IA visuelle anti-contrefaçon**, **vérification d'authenticité externe (réseau GS1 / base nationale)**.
+- Marketplace pharmaceutique, centrale d'achat, comparateur fournisseurs, téléconsultation, e-prescription, livraison, visiteurs médicaux, **IA visuelle anti-contrefaçon**, **vérification d'authenticité externe (réseau GS1 / base nationale)**, **gestion des salariés au sens large (RH/paie élargie)** — module sous licence séparée, non inclus dans la licence MVP/V2.
+
+> **Licence par palier (décision 22/06/2026)** : MVP, V2 et V3 sont chacun un palier de licence. Le module **emploi du temps** (V2) et le module **RH/paie élargie** (V3) sont des add-ons sous licence distincte de la licence de base — la pharmacie doit souscrire séparément pour les activer. Gating technique posé dès le MVP (migration `0012_module_licensing.sql` : `tenants.licensed_modules` + RPC `has_licensed_module`), vide par défaut ; aucun code du tronc commun ne doit coder en dur l'accès à ces modules.
 
 ### PHASE 4 — V4 Impact sectoriel
 - E-learning personnel officinal, certifications, bourse pharmaceutique continentale.
