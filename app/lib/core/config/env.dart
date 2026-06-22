@@ -18,4 +18,14 @@ class Env {
       supabaseUrl.isNotEmpty &&
       supabaseKey.isNotEmpty &&
       powerSyncUrl.isNotEmpty;
+
+  // Assistant IA en ligne (étage 2 — Sprint 11). Pointe en pratique vers une
+  // fonction Supabase Edge qui appelle l'API Claude côté serveur (clé jamais
+  // embarquée dans l'app). Sans config, l'assistant affiche un message de
+  // dégradation gracieuse au lieu d'échouer silencieusement.
+  static const assistantApiUrl = String.fromEnvironment('ASSISTANT_API_URL');
+  static const assistantApiKey = String.fromEnvironment('ASSISTANT_API_KEY');
+
+  static bool get isAssistantConfigured =>
+      assistantApiUrl.isNotEmpty && assistantApiKey.isNotEmpty;
 }

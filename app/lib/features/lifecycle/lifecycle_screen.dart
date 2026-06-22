@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/rbac/permission_gate.dart';
 import '../../core/rbac/permissions.dart';
+import '../../core/rbac/rbac_providers.dart';
 import '../../core/sync/sync_service.dart';
 import '../stock/stock_models.dart';
 import '../stock/stock_repository.dart';
+import '../traceability/lot_trace_screen.dart';
 import 'expiry_alerts.dart';
 
 const _exitTypeLabels = {
@@ -72,6 +74,7 @@ class LifecycleScreen extends ConsumerWidget {
                   itemBuilder: (context, i) {
                     final row = alerts[i];
                     final level = expiryAlertLevel(row.lot.expirationDate, today);
+                    final canTrace = watchCan(ref, Permissions.traceLotView);
                     return ListTile(
                       leading: Icon(
                         Icons.event_busy_outlined,
@@ -84,6 +87,17 @@ class LifecycleScreen extends ConsumerWidget {
                         '· qté ${row.lot.quantity}',
                       ),
                       trailing: Text(_alertLabel(level)),
+                      onTap: !canTrace
+                          ? null
+                          : () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => LotTraceScreen(
+                                  lotId: row.lot.id,
+                                  lotLabel:
+                                      '${row.productName} (lot ${row.lot.lotNumber ?? '—'})',
+                                ),
+                              ),
+                            ),
                     );
                   },
                 );

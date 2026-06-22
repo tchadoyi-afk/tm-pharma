@@ -190,6 +190,27 @@ final powerSyncSchema = Schema([
     ],
   ),
   Table(
+    'audit_log',
+    [
+      Column.text('tenant_id'),
+      Column.text('user_id'),
+      Column.text('action'),
+      Column.text('entity'),
+      Column.text('entity_id'),
+      Column.text('before'),
+      Column.text('after'),
+      Column.text('device_ts'),
+      Column.text('server_ts'),
+      Column.text('prev_hash'),
+      Column.text('hash'),
+      Column.text('created_at'),
+    ],
+    indexes: [
+      Index('audit_tenant', [IndexedColumn('tenant_id')]),
+      Index('audit_entity', [IndexedColumn('entity'), IndexedColumn('entity_id')]),
+    ],
+  ),
+  Table(
     'purchase_order_items',
     [
       Column.text('tenant_id'),

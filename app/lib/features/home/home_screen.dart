@@ -91,6 +91,15 @@ class HomeScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 32),
                   PermissionGate(
+                    permission: Permissions.stockView,
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.dashboard_outlined),
+                      label: const Text('Tableau de bord'),
+                      onPressed: () => context.go('/dashboard'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  PermissionGate(
                     permission: Permissions.posSell,
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.point_of_sale),
@@ -165,6 +174,24 @@ class HomeScreen extends ConsumerWidget {
                       icon: const Icon(Icons.shopping_cart_outlined),
                       label: const Text('Suggestions de réappro'),
                       onPressed: () => context.go('/reorder'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  PermissionGate(
+                    permission: Permissions.auditViewOwn,
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.history_outlined),
+                      label: const Text('Journal d\'audit'),
+                      onPressed: () => context.go('/audit'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  PermissionGate(
+                    permission: Permissions.aiAssistantUse,
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.smart_toy_outlined),
+                      label: const Text('Assistant IA'),
+                      onPressed: () => context.go('/assistant'),
                     ),
                   ),
                 ],

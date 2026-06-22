@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:powersync/powersync.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../core/audit/audit_log_writer.dart';
 import '../../core/sync/sync_service.dart';
 import '../stock/stock_models.dart';
 import 'cart_model.dart';
@@ -70,6 +71,21 @@ class PosRepository {
       'closed_at = ?, updated_at = ? WHERE id = ?',
       [total, now, now, sessionId],
     );
+    final session = await _db.getAll(
+      'SELECT tenant_id, user_id FROM cash_sessions WHERE id = ?',
+      [sessionId],
+    );
+    if (session.isNotEmpty) {
+      await writeAuditLog(
+        _db,
+        tenantId: session.first['tenant_id'] as String,
+        userId: session.first['user_id'] as String?,
+        action: 'CASH_CLOSE',
+        entity: 'cash_sessions',
+        entityId: sessionId,
+        after: {'closing_amount': total},
+      );
+    }
   }
 
   /// Encaisse le panier : choisit le lot FEFO par produit, décrémente sa
@@ -133,6 +149,15 @@ class PosRepository {
         [r.quantity, now, r.lotId],
       );
     }
+    await writeAuditLog(
+      _db,
+      tenantId: tenantId,
+      userId: userId,
+      action: 'SALE',
+      entity: 'sales',
+      entityId: saleId,
+      after: {'total_amount': cart.total, 'lines': cart.lines.length},
+    );
     return saleId;
   }
 

@@ -7,8 +7,11 @@ import 'package:go_router/go_router.dart';
 import '../auth/auth_repository.dart';
 import '../config/env.dart';
 import '../../features/admin/roles_screen.dart';
+import '../../features/assistant/assistant_screen.dart';
+import '../../features/audit/audit_screen.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/catalog/catalog_screen.dart';
+import '../../features/dashboard/dashboard_screen.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/lifecycle/lifecycle_screen.dart';
 import '../../features/onboarding/onboarding_screen.dart';
@@ -90,6 +93,23 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/reorder',
         name: 'reorder',
         builder: (context, state) => const ReorderScreen(),
+      ),
+      GoRoute(
+        path: '/dashboard',
+        name: 'dashboard',
+        builder: (context, state) => const DashboardScreen(),
+      ),
+      GoRoute(
+        path: '/audit',
+        name: 'audit',
+        builder: (context, state) => const AuditScreen(),
+      ),
+      GoRoute(
+        path: '/assistant',
+        name: 'assistant',
+        builder: (context, state) => const AssistantScreen(
+          tenantId: '00000000-0000-0000-0000-000000000001',
+        ),
       ),
     ],
   );

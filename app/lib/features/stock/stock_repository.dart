@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:powersync/powersync.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../core/audit/audit_log_writer.dart';
 import '../../core/sync/sync_service.dart';
 import 'stock_models.dart';
 
@@ -53,6 +54,25 @@ class StockRepository {
               .map((r) => (lot: Lot.fromRow(r), productName: r['product_name'] as String))
               .toList(),
         );
+  }
+
+  /// Mouvements de stock d'un lot (réception/ajustement/sortie), pour la
+  /// fiche de traçabilité (Sprint 11).
+  Future<List<Map<String, Object?>>> getLotMovements(String lotId) {
+    return _db.getAll(
+      'SELECT * FROM stock_movements WHERE lot_id = ? AND deleted_at IS NULL '
+      'ORDER BY created_at',
+      [lotId],
+    );
+  }
+
+  /// Lignes de vente ayant prélevé sur ce lot, pour la fiche de traçabilité.
+  Future<List<Map<String, Object?>>> getLotSaleItems(String lotId) {
+    return _db.getAll(
+      'SELECT * FROM sale_items WHERE lot_id = ? AND deleted_at IS NULL '
+      'ORDER BY created_at',
+      [lotId],
+    );
   }
 
   Stream<List<Supplier>> watchSuppliers() {
@@ -144,6 +164,15 @@ class StockRepository {
         now,
       ],
     );
+    await writeAuditLog(
+      _db,
+      tenantId: tenantId,
+      userId: createdBy,
+      action: 'STOCK_RECEIPT',
+      entity: 'lots',
+      entityId: lotId,
+      after: {'product_id': productId, 'quantity': quantity, 'lot_number': lotNumber},
+    );
   }
 
   /// Sortie de stock pour don, retour fournisseur ou transfert vers une
@@ -183,6 +212,15 @@ class StockRepository {
         now,
       ],
     );
+    await writeAuditLog(
+      _db,
+      tenantId: tenantId,
+      userId: createdBy,
+      action: 'STOCK_EXIT_$type',
+      entity: 'lots',
+      entityId: lotId,
+      after: {'product_id': productId, 'quantity': -quantity, 'reason': reason},
+    );
   }
 
   /// Ajustement manuel d'un lot (correction d'inventaire, perte, casse…).
@@ -216,6 +254,15 @@ class StockRepository {
         now,
         now,
       ],
+    );
+    await writeAuditLog(
+      _db,
+      tenantId: tenantId,
+      userId: createdBy,
+      action: 'STOCK_ADJUSTMENT',
+      entity: 'lots',
+      entityId: lotId,
+      after: {'product_id': productId, 'quantity_delta': quantityDelta, 'reason': reason},
     );
   }
 }
