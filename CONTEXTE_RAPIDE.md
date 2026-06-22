@@ -38,7 +38,7 @@ Archives : `CDC SaaS_Pharmacie V0.pdf` (ex-« OfficineOS », historique) + 4 PDF
   - `app/lib/features/catalog/` : `product_model.dart` (+ `normalizeBarcode`), `products_repository.dart` (recherche nom/DCI/code-barres, création produit depuis le référentiel ou en saisie libre, association code-barres au vol, édition prix), `catalog_screen.dart` (recherche instantanée, FAB ajout sous `product.create`, édition prix sous `price.edit`).
   - Route `/catalog` + bouton accueil sous `PermissionGate(stock.view)`.
   - Tests : `product_model_test.dart` (normalisation code-barres + parsing).
-  - ⚠️ **Non exécuté** : `flutter analyze`/`flutter test` n'ont pas pu tourner dans cette session (toolchain Flutter absente de l'environnement d'exécution) — à vérifier en priorité à la reprise.
+  - ✅ Vérifié (Flutter 3.44.2/Dart 3.12.2) : `flutter analyze` → 0 issue (2 `use_build_context_synchronously` corrigés avec garde `context.mounted` dans `_editPrice`/`_attachBarcode`) ; `flutter test` → 13/13 passés.
 - Plateformes : **Android + Web** (iOS repoussé). Une seule app Flutter.
 - **S1 — socle** :
   - `supabase/migrations/0001_core.sql` : tenants, users (liés `auth.users`), RBAC, `pharmacy_settings` (logo/identité/devise XOF·XAF), `audit_log` immuable **chaîné par hash**, **RLS** + habilitation.

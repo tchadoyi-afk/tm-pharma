@@ -162,7 +162,7 @@ class _ProductTile extends StatelessWidget {
         ],
       ),
     );
-    if (newPrice == null) return;
+    if (newPrice == null || !context.mounted) return;
     final repo = ProviderScope.containerOf(context).read(
       productsRepositoryProvider,
     );
@@ -192,7 +192,7 @@ class _ProductTile extends StatelessWidget {
         ],
       ),
     );
-    if (code == null) return;
+    if (code == null || !context.mounted) return;
     final repo = ProviderScope.containerOf(context).read(
       productsRepositoryProvider,
     );
