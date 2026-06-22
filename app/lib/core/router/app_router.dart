@@ -10,6 +10,7 @@ import '../../features/admin/roles_screen.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/catalog/catalog_screen.dart';
 import '../../features/home/home_screen.dart';
+import '../../features/onboarding/onboarding_screen.dart';
 import '../../features/pos/pos_demo_screen.dart';
 import '../../features/stock/stock_screen.dart';
 
@@ -60,6 +61,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/stock',
         name: 'stock',
         builder: (context, state) => const StockScreen(),
+      ),
+      GoRoute(
+        path: '/onboarding',
+        name: 'onboarding',
+        builder: (context, state) => const OnboardingScreen(),
       ),
     ],
   );

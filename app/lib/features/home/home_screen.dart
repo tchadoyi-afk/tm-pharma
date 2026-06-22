@@ -115,6 +115,15 @@ class HomeScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                   PermissionGate(
+                    permission: Permissions.settingsManage,
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.rocket_launch_outlined),
+                      label: const Text('Assistant d\'onboarding'),
+                      onPressed: () => context.go('/onboarding'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  PermissionGate(
                     permission: Permissions.userManage,
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.admin_panel_settings_outlined),
