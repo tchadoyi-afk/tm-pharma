@@ -17,6 +17,9 @@ bucket_definitions:
       - select * from stock_movements where tenant_id = bucket.tenant_id
       - select * from cash_sessions   where tenant_id = bucket.tenant_id
       - select * from invoices        where tenant_id = bucket.tenant_id
+      - select * from promotions      where tenant_id = bucket.tenant_id
+      - select * from purchase_orders      where tenant_id = bucket.tenant_id
+      - select * from purchase_order_items where tenant_id = bucket.tenant_id
   # Catalogue de référence DCI : global, partagé par tous les tenants
   # (pas de paramètre de partition — un seul bucket pour tout le monde).
   reference_catalog:

@@ -10,9 +10,12 @@ import '../../features/admin/roles_screen.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/catalog/catalog_screen.dart';
 import '../../features/home/home_screen.dart';
+import '../../features/lifecycle/lifecycle_screen.dart';
 import '../../features/onboarding/onboarding_screen.dart';
 import '../../features/pos/pos_demo_screen.dart';
 import '../../features/pos/pos_screen.dart';
+import '../../features/promotions/promotions_screen.dart';
+import '../../features/reorder/reorder_screen.dart';
 import '../../features/stock/stock_screen.dart';
 
 /// Routeur applicatif (go_router) avec garde d'authentification.
@@ -72,6 +75,21 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/onboarding',
         name: 'onboarding',
         builder: (context, state) => const OnboardingScreen(),
+      ),
+      GoRoute(
+        path: '/lifecycle',
+        name: 'lifecycle',
+        builder: (context, state) => const LifecycleScreen(),
+      ),
+      GoRoute(
+        path: '/promotions',
+        name: 'promotions',
+        builder: (context, state) => const PromotionsScreen(),
+      ),
+      GoRoute(
+        path: '/reorder',
+        name: 'reorder',
+        builder: (context, state) => const ReorderScreen(),
       ),
     ],
   );

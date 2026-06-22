@@ -140,6 +140,33 @@ class HomeScreen extends ConsumerWidget {
                       onPressed: () => context.go('/admin/roles'),
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  PermissionGate(
+                    permission: Permissions.stockAdjust,
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.event_busy_outlined),
+                      label: const Text('Péremptions & sorties'),
+                      onPressed: () => context.go('/lifecycle'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  PermissionGate(
+                    permission: Permissions.priceEdit,
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.local_offer_outlined),
+                      label: const Text('Promotions'),
+                      onPressed: () => context.go('/promotions'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  PermissionGate(
+                    permission: Permissions.purchaseOrder,
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.shopping_cart_outlined),
+                      label: const Text('Suggestions de réappro'),
+                      onPressed: () => context.go('/reorder'),
+                    ),
+                  ),
                 ],
               ),
             ),

@@ -7,9 +7,12 @@ import '../../core/rbac/permissions.dart';
 import '../../core/sync/sync_service.dart';
 import '../catalog/product_model.dart';
 import '../catalog/products_repository.dart';
+import '../fraud/fraud_signals.dart';
 import '../invoicing/invoice_models.dart';
 import '../invoicing/invoice_pdf.dart';
 import '../invoicing/invoice_repository.dart';
+import '../promotions/promotion_pricing.dart';
+import '../promotions/promotions_repository.dart';
 import 'cart_model.dart';
 import 'pos_repository.dart';
 
@@ -35,12 +38,22 @@ class _PosScreenState extends ConsumerState<PosScreen> {
     super.dispose();
   }
 
-  void _addToCart(Product product) {
+  Future<void> _addToCart(Product product) async {
+    final promotions = await ref
+        .read(promotionsRepositoryProvider)
+        .watchPromotions()
+        .first;
+    final unitPrice = applyActivePromotion(
+      unitPrice: product.sellingPrice,
+      promotions: promotions,
+      productId: product.id,
+      now: DateTime.now(),
+    );
     setState(() {
       _cart = _cart.addProduct(
         productId: product.id,
         productName: product.name,
-        unitPrice: product.sellingPrice,
+        unitPrice: unitPrice,
       );
     });
   }
@@ -109,7 +122,53 @@ class _PosScreenState extends ConsumerState<PosScreen> {
   }
 
   Future<void> _closeSession(String sessionId) async {
-    await ref.read(posRepositoryProvider).closeCashSession(sessionId);
+    final repo = ref.read(posRepositoryProvider);
+    final rows = await repo.getSalesForSession(sessionId);
+    final signals = detectFraudSignals(
+      rows
+          .map(
+            (r) => FraudSaleSample(
+              totalAmount: (r['total_amount'] as num).toDouble(),
+              soldAt: DateTime.parse(r['sold_at'] as String),
+            ),
+          )
+          .toList(),
+    );
+    if (signals.isNotEmpty && mounted) {
+      final proceed = await _showFraudSignalsDialog(signals);
+      if (proceed != true) return;
+    }
+    await repo.closeCashSession(sessionId);
+  }
+
+  Future<bool?> _showFraudSignalsDialog(List<FraudSignal> signals) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Anomalies détectées'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (final s in signals)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text('• ${s.message}'),
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Clôturer malgré tout'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -199,7 +258,7 @@ class _CheckoutView extends ConsumerWidget {
   final TextEditingController searchController;
   final ValueChanged<String> onSearchChanged;
   final String search;
-  final void Function(Product) onAdd;
+  final Future<void> Function(Product) onAdd;
   final void Function(String productId) onRemove;
   final Future<void> Function(String sessionId) onCheckout;
   final Future<void> Function(String sessionId) onCloseSession;

@@ -44,6 +44,17 @@ class PosRepository {
     return id;
   }
 
+  /// Ventes complétées d'une session, pour l'analyse anti-fraude à la
+  /// clôture (cf. `fraud_signals.dart`).
+  Future<List<Map<String, Object?>>> getSalesForSession(
+    String sessionId,
+  ) async {
+    return _db.getAll(
+      "SELECT * FROM sales WHERE cash_session_id = ? AND status = 'COMPLETED'",
+      [sessionId],
+    );
+  }
+
   /// Clôture une session : total encaissé en espèces calculé depuis les
   /// ventes (pas saisi à la main, pour éviter l'erreur de caisse).
   Future<void> closeCashSession(String sessionId) async {
@@ -74,18 +85,24 @@ class PosRepository {
     final now = DateTime.now().toUtc().toIso8601String();
     final saleId = _uuid.v4();
 
-    // Résout le lot FEFO de chaque ligne avant toute écriture, pour ne
-    // jamais laisser une vente partiellement enregistrée.
-    final resolved = <({CartLine line, String lotId})>[];
+    // Résout l'allocation FEFO (multi-lots si besoin) de chaque ligne avant
+    // toute écriture, pour ne jamais laisser une vente partiellement
+    // enregistrée.
+    final resolved = <({CartLine line, String lotId, int quantity})>[];
     for (final line in cart.lines) {
       final lotRows = await _db.getAll(
         'SELECT * FROM lots WHERE product_id = ? AND quantity > 0 '
         'AND deleted_at IS NULL',
         [line.productId],
       );
-      final lot = pickFefoLot(lotRows.map(Lot.fromRow).toList(), line.quantity);
-      if (lot == null) throw InsufficientStockException(line.productName);
-      resolved.add((line: line, lotId: lot.id));
+      final allocation = pickFefoAllocation(
+        lotRows.map(Lot.fromRow).toList(),
+        line.quantity,
+      );
+      if (allocation == null) throw InsufficientStockException(line.productName);
+      for (final part in allocation) {
+        resolved.add((line: line, lotId: part.lot.id, quantity: part.quantity));
+      }
     }
 
     await _db.execute(
@@ -105,7 +122,7 @@ class PosRepository {
           tenantId,
           saleId,
           r.lotId,
-          r.line.quantity,
+          r.quantity,
           r.line.unitPrice,
           now,
           now,
@@ -113,7 +130,7 @@ class PosRepository {
       );
       await _db.execute(
         'UPDATE lots SET quantity = quantity - ?, updated_at = ? WHERE id = ?',
-        [r.line.quantity, now, r.lotId],
+        [r.quantity, now, r.lotId],
       );
     }
     return saleId;

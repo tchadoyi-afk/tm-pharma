@@ -29,7 +29,29 @@ Archives : `CDC SaaS_Pharmacie V0.pdf` (ex-« OfficineOS », historique) + 4 PDF
 - À ~80 % de contexte : préparer la session suivante automatiquement (ce fichier + mémoire + tâches + commit si repo).
 
 ## État actuel
-- Phase : **S1, S2, S2b, S3, S4, S5, S6, S7, S8 faits en local** (reste = pièces cloud). Repo git `C:\Claude\TM_Projects\TM_Pharma`, branche `main` (+ poussé sur GitHub). Commits : `7c7ddd3` (S1), `4218b36` (S2), `34be20d` (démo+CI), `5f5e131` (Drift), `af75472` (S3 auth+RBAC), `8b85211` (S3 validation+rôles), `7783d4c` (doc), S4, S5, S6, S7, puis S8 (ce commit).
+- Phase : **S1, S2, S2b, S3, S4, S5, S6, S7, S8, S9, S10 faits en local** (reste = pièces cloud). Repo git, branche `claude/dreamy-sagan-2zd94w` (+ poussé sur GitHub). Commits : `7c7ddd3` (S1), `4218b36` (S2), `34be20d` (démo+CI), `5f5e131` (Drift), `af75472` (S3 auth+RBAC), `8b85211` (S3 validation+rôles), `7783d4c` (doc), S4, S5, S6, S7, S8, puis S9+S10 (ce commit).
+- **S10 — Mini IA étage 1 (local) + réappro** :
+  - `0011_purchase_orders.sql` : `purchase_orders` (statut DRAFT/SENT/RECEIVED/CANCELLED) + `purchase_order_items`, RLS lecture sous `stock.view` / écriture sous `purchase.order`.
+  - `sync_rules.yaml` : `purchase_orders`/`purchase_order_items` ajoutés au bucket `by_tenant`.
+  - `app/lib/core/sync/schema.dart` : tables `purchase_orders`/`purchase_order_items` côté PowerSync local.
+  - `app/lib/features/reorder/` : `reorder_suggestion.dart` (heuristique pure — produits sous le seuil bas, quantité suggérée ramène le stock à 2x le seuil, pas d'historique de ventes dans cette première version), `purchase_order_model.dart`, `purchase_order_repository.dart` (création du bon de commande DRAFT à partir des suggestions sélectionnées), `reorder_screen.dart` (liste des suggestions avec cases à cocher, génération du bon sous `purchase.order`).
+  - Route `/reorder` + bouton accueil sous `PermissionGate(purchase.order)`.
+  - `app/lib/features/pos/fefo.dart` : **FEFO intelligent** — nouvelle fonction `pickFefoAllocation` répartissant une quantité sur plusieurs lots (du plus proche de la péremption au plus lointain) quand aucun lot seul ne suffit ; `pickFefoLot` (lot unique) conservé pour compatibilité. `pos_repository.dart::checkout` utilise désormais l'allocation multi-lots (plusieurs `sale_items` par ligne de panier si répartie sur plusieurs lots).
+  - `app/lib/features/fraud/fraud_signals.dart` : heuristique anti-fraude locale (pure) — remises répétées juste sous le seuil d'approbation, ventes hors plage horaire, montant largement supérieur à la moyenne de la session. Câblée à la clôture de caisse (`pos_screen.dart::_closeSession`) : boîte de dialogue d'anomalies avant confirmation si signaux détectés (la clôture reste possible après confirmation explicite).
+  - Tests : `reorder_suggestion_test.dart`, `fraud_signals_test.dart`, ajout de cas `pickFefoAllocation` dans `fefo_test.dart`.
+  - **Limite connue (MVP)** : suggestion de réappro sans historique de vélocité de ventes (`sale_items`) — raffinement possible en V2. Signal de fraude « remises » non alimenté en pratique tant que le panier ne transporte pas de `discountPercent` par vente (paramètre prêt côté fonction pure, pas encore branché à un champ `sales`).
+- **S9 — Cycle de vie & péremptions** :
+  - `0010_lifecycle.sql` : élargit `stock_movements.type` à `DONATION`/`SUPPLIER_RETURN` (en plus de `RECEIPT`/`ADJUSTMENT`/`TRANSFER`, tous sous `stock.adjust` sauf RECEPTION) ; nouvelle table `promotions` (remise % par produit avec fenêtre de validité), RLS lecture tenant / écriture sous `price.edit`.
+  - `sync_rules.yaml` : `promotions` ajouté au bucket `by_tenant`.
+  - `app/lib/core/sync/schema.dart` : table `promotions` côté PowerSync local.
+  - `app/lib/features/lifecycle/` : `expiry_alerts.dart` (seuils J-90/J-30/J-7/expiré, pure), `lifecycle_screen.dart` (liste des lots en alerte triés par péremption, sortie de stock hors-vente — don/retour fournisseur/transfert — sous `stock.adjust`).
+  - `app/lib/features/stock/stock_repository.dart` étendu : `recordStockExit` (sortie non-vente, décrémente le lot et journalise un mouvement négatif), `watchAllLots` (jointure lot+produit pour le suivi des péremptions).
+  - `app/lib/features/promotions/` : `promotion_model.dart`, `promotion_pricing.dart` (`applyActivePromotion`, pure — applique la plus forte remise active), `promotions_repository.dart`, `promotions_screen.dart` (liste + création — fenêtre de validité par défaut 7 jours, pas de sélecteur de date dans cette première version).
+  - `app/lib/features/pos/pos_screen.dart` : `_addToCart` applique désormais la promotion active du produit au moment de l'ajout au panier.
+  - Routes `/lifecycle` (sous `stock.adjust`) et `/promotions` (sous `price.edit`) + boutons accueil.
+  - Tests : `expiry_alerts_test.dart`, `promotion_pricing_test.dart`.
+  - **Limite connue (MVP)** : le transfert inter-pharmacie (`TRANSFER`) ne journalise que le côté sortant — la réception côté pharmacie destinataire (tenant distinct) est hors scope MVP.
+  - ✅ Vérifié (S9+S10, Flutter 3.44.2/Dart 3.12.2) : `flutter analyze` → 0 issue ; `flutter test` → 68/68 passés.
 - **S8 — Facturation & impression (🚩 jalon Pilote)** :
   - `0009_invoices.sql` : `invoices` (numéro unique par tenant, lié à `sales`), fonction serveur `next_invoice_number()` (incrément atomique de `pharmacy_settings.invoice_next_number`, verrou de ligne — backstop côté cloud), RLS lecture tenant / insertion sous `invoice.issue`.
   - `sync_rules.yaml` : `invoices` ajouté au bucket `by_tenant`.
@@ -98,12 +120,12 @@ Archives : `CDC SaaS_Pharmacie V0.pdf` (ex-« OfficineOS », historique) + 4 PDF
 - ⚠️ Incident 21/06 : disque `E:` déconnecté → tout sur `C:` (repo git = sauvegarde).
 
 ## ▶ POINT DE REPRISE (prochaine session)
-S8 fait en local (Facturation & impression — jalon Pilote atteint en local : encaissement → facture numérotée → ticket/PDF). Tout vérifié (`flutter analyze` 0 issue, `flutter test` 41/41).
+S9+S10 faits en local (Cycle de vie & péremptions + Mini IA étage 1 local & réappro). Tout vérifié (`flutter analyze` 0 issue, `flutter test` 68/68).
 Au choix du PO :
-1. **S9 et suite** (cf. `PROGRAMME_DEVELOPPEMENT.md`) pour continuer le plan S1→S12 en local.
-2. **Provisionner Supabase + PowerSync** (coût) → appliquer 0001→0009, instance PowerSync, `env.json`, puis valider en live (auth + MFA + CRUD rôles + vente offline→synchro + catalogue partagé + facturation).
+1. **S11 et suite** (cf. `PROGRAMME_DEVELOPPEMENT.md`) pour continuer le plan S1→S12 en local.
+2. **Provisionner Supabase + PowerSync** (coût) → appliquer 0001→0011, instance PowerSync, `env.json`, puis valider en live (auth + MFA + CRUD rôles + vente offline→synchro + catalogue partagé + facturation + réappro/anti-fraude).
 
-> Reco Claude : poursuivre la dynamique avec le sprint suivant du programme (S9) tant que le cloud n'est pas provisionné.
+> Reco Claude : poursuivre la dynamique avec le sprint suivant du programme (S11) tant que le cloud n'est pas provisionné.
 
 Outillage machine : git, Node/npm, Flutter/Dart (`C:\flutter`), VS Code ✓ · Supabase CLI, Docker ✗.
 Lancer l'app configurée : `flutter run --dart-define-from-file=env.json` (modèle : `app/.env.example`).

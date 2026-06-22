@@ -158,4 +158,50 @@ final powerSyncSchema = Schema([
       Index('invoice_sale', [IndexedColumn('sale_id')]),
     ],
   ),
+  Table(
+    'promotions',
+    [
+      Column.text('tenant_id'),
+      Column.text('product_id'),
+      Column.real('discount_percent'),
+      Column.text('starts_at'),
+      Column.text('ends_at'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+      Column.text('deleted_at'),
+    ],
+    indexes: [
+      Index('promotion_product', [IndexedColumn('product_id')]),
+    ],
+  ),
+  Table(
+    'purchase_orders',
+    [
+      Column.text('tenant_id'),
+      Column.text('supplier_id'),
+      Column.text('status'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+      Column.text('deleted_at'),
+    ],
+    indexes: [
+      Index('purchase_order_tenant', [IndexedColumn('tenant_id')]),
+    ],
+  ),
+  Table(
+    'purchase_order_items',
+    [
+      Column.text('tenant_id'),
+      Column.text('purchase_order_id'),
+      Column.text('product_id'),
+      Column.integer('quantity'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+      Column.text('deleted_at'),
+    ],
+    indexes: [
+      Index('po_item_order', [IndexedColumn('purchase_order_id')]),
+    ],
+  ),
 ]);

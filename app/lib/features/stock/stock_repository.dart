@@ -38,6 +38,23 @@ class StockRepository {
         .map((rs) => rs.map(Lot.fromRow).toList());
   }
 
+  /// Tous les lots en stock (toutes pharmacies confondues — RLS filtre déjà
+  /// par tenant), avec le nom du produit, pour le suivi des péremptions.
+  Stream<List<({Lot lot, String productName})>> watchAllLots() {
+    return _db
+        .watch(
+          'SELECT l.*, p.name AS product_name '
+          'FROM lots l JOIN products p ON p.id = l.product_id '
+          'WHERE l.deleted_at IS NULL AND l.quantity > 0 '
+          'ORDER BY l.expiration_date',
+        )
+        .map(
+          (rs) => rs
+              .map((r) => (lot: Lot.fromRow(r), productName: r['product_name'] as String))
+              .toList(),
+        );
+  }
+
   Stream<List<Supplier>> watchSuppliers() {
     return _db
         .watch(
@@ -122,6 +139,45 @@ class StockRepository {
         supplierId,
         'RECEIPT',
         quantity,
+        createdBy,
+        now,
+        now,
+      ],
+    );
+  }
+
+  /// Sortie de stock pour don, retour fournisseur ou transfert vers une
+  /// autre pharmacie (Sprint 9). `quantity` est positive ; le mouvement
+  /// journalisé est négatif. La réception côté pharmacie destinataire d'un
+  /// transfert est hors scope MVP (tenants distincts).
+  Future<void> recordStockExit({
+    required String tenantId,
+    required String lotId,
+    required String productId,
+    required int quantity,
+    required String type,
+    String? reason,
+    String? createdBy,
+  }) async {
+    assert(type == 'DONATION' || type == 'SUPPLIER_RETURN' || type == 'TRANSFER');
+    if (quantity <= 0) return;
+    final now = DateTime.now().toUtc().toIso8601String();
+    await _db.execute(
+      'UPDATE lots SET quantity = quantity - ?, updated_at = ? WHERE id = ?',
+      [quantity, now, lotId],
+    );
+    await _db.execute(
+      'INSERT INTO stock_movements (id, tenant_id, product_id, lot_id, '
+      'type, quantity_delta, reason, created_by, created_at, updated_at) '
+      'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        _uuid.v4(),
+        tenantId,
+        productId,
+        lotId,
+        type,
+        -quantity,
+        reason,
         createdBy,
         now,
         now,
