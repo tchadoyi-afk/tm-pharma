@@ -11,6 +11,7 @@ import '../../features/auth/login_screen.dart';
 import '../../features/catalog/catalog_screen.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/pos/pos_demo_screen.dart';
+import '../../features/stock/stock_screen.dart';
 
 /// Routeur applicatif (go_router) avec garde d'authentification.
 /// En mode local (Supabase non configuré), la garde est désactivée pour
@@ -54,6 +55,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/catalog',
         name: 'catalog',
         builder: (context, state) => const CatalogScreen(),
+      ),
+      GoRoute(
+        path: '/stock',
+        name: 'stock',
+        builder: (context, state) => const StockScreen(),
       ),
     ],
   );

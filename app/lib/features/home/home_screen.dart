@@ -106,6 +106,15 @@ class HomeScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                   PermissionGate(
+                    permission: Permissions.stockView,
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.inventory_2_outlined),
+                      label: const Text('Stocks'),
+                      onPressed: () => context.go('/stock'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  PermissionGate(
                     permission: Permissions.userManage,
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.admin_panel_settings_outlined),

@@ -9,6 +9,7 @@ class Product {
     this.unit = 'unité',
     this.category,
     this.referenceId,
+    this.lowStockThreshold = 0,
   });
 
   final String id;
@@ -19,6 +20,7 @@ class Product {
   final String? category;
   final String? referenceId;
   final double sellingPrice;
+  final int lowStockThreshold;
 
   factory Product.fromRow(Map<String, Object?> row) => Product(
     id: row['id'] as String,
@@ -29,6 +31,7 @@ class Product {
     category: row['category'] as String?,
     referenceId: row['reference_id'] as String?,
     sellingPrice: (row['selling_price'] as num?)?.toDouble() ?? 0,
+    lowStockThreshold: (row['low_stock_threshold'] as num?)?.toInt() ?? 0,
   );
 }
 

@@ -29,7 +29,15 @@ Archives : `CDC SaaS_Pharmacie V0.pdf` (ex-« OfficineOS », historique) + 4 PDF
 - À ~80 % de contexte : préparer la session suivante automatiquement (ce fichier + mémoire + tâches + commit si repo).
 
 ## État actuel
-- Phase : **S1, S2, S2b, S3 faits ; S4 fait en local** (reste = pièces cloud). Repo git `C:\Claude\TM_Projects\TM_Pharma`, branche `main` (+ poussé sur GitHub). Commits : `7c7ddd3` (S1), `4218b36` (S2), `34be20d` (démo+CI), `5f5e131` (Drift), `af75472` (S3 auth+RBAC), `8b85211` (S3 validation+rôles), `7783d4c` (doc), puis S4 (ce commit).
+- Phase : **S1, S2, S2b, S3, S4 faits ; S5 fait en local** (reste = pièces cloud). Repo git `C:\Claude\TM_Projects\TM_Pharma`, branche `main` (+ poussé sur GitHub). Commits : `7c7ddd3` (S1), `4218b36` (S2), `34be20d` (démo+CI), `5f5e131` (Drift), `af75472` (S3 auth+RBAC), `8b85211` (S3 validation+rôles), `7783d4c` (doc), S4, puis S5 (ce commit).
+- **S5 — Stocks & lots + scan GS1** :
+  - `0007_stock_movements.sql` : `suppliers` (par tenant), `stock_movements` (journal RECEIPT/ADJUSTMENT/TRANSFER, RLS séparant `stock.receive`/`stock.adjust`), `products.low_stock_threshold`.
+  - `sync_rules.yaml` : `suppliers`/`stock_movements` ajoutés au bucket `by_tenant`.
+  - `app/lib/core/sync/schema.dart` : tables `suppliers`/`stock_movements` + colonne `low_stock_threshold` côté PowerSync local.
+  - `app/lib/features/stock/` : `gs1_parser.dart` (décodage AI 01/17/10 — GTIN/péremption/lot, FNC1 géré), `stock_models.dart`, `stock_repository.dart` (réception → crée/complète un lot + journalise le mouvement ; ajustement manuel ; vue agrégée stock par produit), `stock_screen.dart` (liste avec ruptures signalées sous seuil, réception via scan/saisie GS1 ou champs manuels sous `stock.receive`).
+  - Route `/stock` + bouton accueil sous `PermissionGate(stock.view)`.
+  - Tests : `gs1_parser_test.dart` (GTIN/péremption/lot, FNC1, chaînes invalides).
+  - ✅ Vérifié (Flutter 3.44.2/Dart 3.12.2) : `flutter analyze` → 0 issue ; `flutter test` → 18/18 passés.
 - **S4 — Catalogue & référentiel produits** :
   - `0005_catalog.sql` : `reference_products` (catalogue DCI global, RLS lecture authentifiée) + colonnes `products.dci_name/unit/category/reference_id`.
   - `0006_seed_reference_catalog.sql` : 10 médicaments courants pré-chargés (DCI + code-barres).

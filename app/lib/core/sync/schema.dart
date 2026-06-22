@@ -15,6 +15,7 @@ final powerSyncSchema = Schema([
       Column.text('category'),
       Column.text('reference_id'),
       Column.real('selling_price'),
+      Column.integer('low_stock_threshold'),
       Column.text('created_at'),
       Column.text('updated_at'),
       Column.text('deleted_at'),
@@ -88,4 +89,39 @@ final powerSyncSchema = Schema([
     Column.text('currency'),
     Column.text('invoice_prefix'),
   ]),
+  Table(
+    'suppliers',
+    [
+      Column.text('tenant_id'),
+      Column.text('name'),
+      Column.text('phone'),
+      Column.text('email'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+      Column.text('deleted_at'),
+    ],
+    indexes: [
+      Index('supplier_tenant', [IndexedColumn('tenant_id')]),
+    ],
+  ),
+  Table(
+    'stock_movements',
+    [
+      Column.text('tenant_id'),
+      Column.text('product_id'),
+      Column.text('lot_id'),
+      Column.text('supplier_id'),
+      Column.text('type'),
+      Column.integer('quantity_delta'),
+      Column.text('reason'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+      Column.text('deleted_at'),
+    ],
+    indexes: [
+      Index('movement_product', [IndexedColumn('product_id')]),
+      Index('movement_lot', [IndexedColumn('lot_id')]),
+    ],
+  ),
 ]);
