@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:printing/printing.dart';
 
 import '../../core/rbac/permission_gate.dart';
 import '../../core/rbac/permissions.dart';
 import '../../core/sync/sync_service.dart';
 import '../catalog/product_model.dart';
 import '../catalog/products_repository.dart';
+import '../invoicing/invoice_models.dart';
+import '../invoicing/invoice_pdf.dart';
+import '../invoicing/invoice_repository.dart';
 import 'cart_model.dart';
 import 'pos_repository.dart';
 
@@ -48,17 +52,17 @@ class _PosScreenState extends ConsumerState<PosScreen> {
   Future<void> _checkout(String cashSessionId) async {
     final repo = ref.read(posRepositoryProvider);
     try {
-      await repo.checkout(
+      final saleId = await repo.checkout(
         tenantId: PosScreen.demoTenantId,
         cashSessionId: cashSessionId,
         cart: _cart,
       );
       setState(() => _cart = Cart.empty);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Vente encaissée (espèces).')),
-        );
-      }
+      if (saleId.isEmpty) return;
+      final invoice = await ref
+          .read(invoiceRepositoryProvider)
+          .createInvoice(tenantId: PosScreen.demoTenantId, saleId: saleId);
+      if (mounted) await _showPrintOptions(invoice);
     } on InsufficientStockException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -66,6 +70,36 @@ class _PosScreenState extends ConsumerState<PosScreen> {
         );
       }
     }
+  }
+
+  Future<void> _showPrintOptions(InvoiceData invoice) async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Vente encaissée — ${invoice.invoiceNumber}'),
+        content: const Text('Imprimer le ticket ou la facture ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Fermer'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final bytes = await buildThermalTicketPdf(invoice);
+              await Printing.layoutPdf(onLayout: (_) async => bytes);
+            },
+            child: const Text('Ticket thermique'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final bytes = await buildInvoicePdf(invoice);
+              await Printing.layoutPdf(onLayout: (_) async => bytes);
+            },
+            child: const Text('Facture PDF'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _openSession() async {

@@ -89,6 +89,7 @@ final powerSyncSchema = Schema([
     Column.text('logo_path'),
     Column.text('currency'),
     Column.text('invoice_prefix'),
+    Column.integer('invoice_next_number'),
   ]),
   Table(
     'suppliers',
@@ -140,6 +141,21 @@ final powerSyncSchema = Schema([
     ],
     indexes: [
       Index('cash_session_tenant', [IndexedColumn('tenant_id')]),
+    ],
+  ),
+  Table(
+    'invoices',
+    [
+      Column.text('tenant_id'),
+      Column.text('sale_id'),
+      Column.text('invoice_number'),
+      Column.text('issued_at'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+      Column.text('deleted_at'),
+    ],
+    indexes: [
+      Index('invoice_sale', [IndexedColumn('sale_id')]),
     ],
   ),
 ]);

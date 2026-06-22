@@ -29,7 +29,17 @@ Archives : `CDC SaaS_Pharmacie V0.pdf` (ex-« OfficineOS », historique) + 4 PDF
 - À ~80 % de contexte : préparer la session suivante automatiquement (ce fichier + mémoire + tâches + commit si repo).
 
 ## État actuel
-- Phase : **S1, S2, S2b, S3, S4, S5, S6 faits ; S7 fait en local** (reste = pièces cloud). Repo git `C:\Claude\TM_Projects\TM_Pharma`, branche `main` (+ poussé sur GitHub). Commits : `7c7ddd3` (S1), `4218b36` (S2), `34be20d` (démo+CI), `5f5e131` (Drift), `af75472` (S3 auth+RBAC), `8b85211` (S3 validation+rôles), `7783d4c` (doc), S4, S5, S6, puis S7 (ce commit).
+- Phase : **S1, S2, S2b, S3, S4, S5, S6, S7, S8 faits en local** (reste = pièces cloud). Repo git `C:\Claude\TM_Projects\TM_Pharma`, branche `main` (+ poussé sur GitHub). Commits : `7c7ddd3` (S1), `4218b36` (S2), `34be20d` (démo+CI), `5f5e131` (Drift), `af75472` (S3 auth+RBAC), `8b85211` (S3 validation+rôles), `7783d4c` (doc), S4, S5, S6, S7, puis S8 (ce commit).
+- **S8 — Facturation & impression (🚩 jalon Pilote)** :
+  - `0009_invoices.sql` : `invoices` (numéro unique par tenant, lié à `sales`), fonction serveur `next_invoice_number()` (incrément atomique de `pharmacy_settings.invoice_next_number`, verrou de ligne — backstop côté cloud), RLS lecture tenant / insertion sous `invoice.issue`.
+  - `sync_rules.yaml` : `invoices` ajouté au bucket `by_tenant`.
+  - `app/lib/core/sync/schema.dart` : table `invoices` + colonne `pharmacy_settings.invoice_next_number` côté PowerSync local.
+  - Dépendances ajoutées : `pdf`, `printing`, `esc_pos_utils_plus`.
+  - `app/lib/features/invoicing/` : `invoice_numbering.dart` (formatage préfixe+compteur sur 6 chiffres), `invoice_models.dart` (`InvoiceLine`/`PharmacyInfo`/`InvoiceData`), `receipt_text.dart` (lignes textuelles pures, réutilisées par ticket et facture), `invoice_repository.dart` (numérotation séquentielle **locale** par tenant — lecture/incrément de `pharmacy_settings.invoice_next_number`, écrit `invoices`, assemble le contenu depuis `sale_items`→`lots`→`products` ; crée une `pharmacy_settings` par défaut si absente en mode démo), `invoice_pdf.dart` (facture A4 avec logo optionnel + ticket PDF étroit 58mm imitant le format thermique), `thermal_ticket.dart` (octets ESC/POS bruts via `esc_pos_utils_plus`, prêts pour une intégration imprimante Bluetooth/USB — pilote matériel hors scope MVP).
+  - `app/lib/features/pos/pos_screen.dart` : après encaissement, émission automatique de la facture puis boîte de dialogue « Ticket thermique » / « Facture PDF » (impression via `printing` — boîte de dialogue système, fonctionne avec une imprimante thermique configurée comme imprimante système).
+  - Tests : `invoice_numbering_test.dart`, `receipt_text_test.dart` (contenu lignes, sous-totaux, total).
+  - ✅ Vérifié (Flutter 3.44.2/Dart 3.12.2) : `flutter analyze` → 0 issue ; `flutter test` → 41/41 passés.
+  - **Limite connue (MVP)** : la numérotation de facture est incrémentée localement par appareil (pas de verrou distribué offline) — risque de collision si deux caissiers ouvrent une session simultanément sans synchro entre-temps ; acceptable pour une pharmacie mono-poste, à revisiter si multi-postes simultanés.
 - **S7 — POS offline-first (caisse)** :
   - `0008_pos.sql` : `cash_sessions` (ouverture/clôture, total calculé depuis les ventes — jamais saisi à la main), `sales.cash_session_id`.
   - `sync_rules.yaml` : `cash_sessions` ajouté au bucket `by_tenant`.
@@ -88,12 +98,12 @@ Archives : `CDC SaaS_Pharmacie V0.pdf` (ex-« OfficineOS », historique) + 4 PDF
 - ⚠️ Incident 21/06 : disque `E:` déconnecté → tout sur `C:` (repo git = sauvegarde).
 
 ## ▶ POINT DE REPRISE (prochaine session)
-S4 fait en local (catalogue & référentiel DCI). **Priorité immédiate : lancer `flutter analyze` + `flutter test` (app/)** — pas pu être vérifié dans cette session (pas de Flutter dans l'environnement d'exécution). Corriger toute erreur avant de poursuivre.
-Ensuite, au choix du PO :
-1. **S5 — Stocks & lots + scan GS1** : mouvements de stock, fournisseurs, seuils, réception, capture GS1 (lot/péremption/GTIN). Gratuit, enchaîne bien sur le catalogue.
-2. **Provisionner Supabase + PowerSync** (coût) → appliquer 0001→0006, instance PowerSync, `env.json`, puis valider en live (auth + MFA + CRUD rôles + vente offline→synchro + catalogue partagé).
+S8 fait en local (Facturation & impression — jalon Pilote atteint en local : encaissement → facture numérotée → ticket/PDF). Tout vérifié (`flutter analyze` 0 issue, `flutter test` 41/41).
+Au choix du PO :
+1. **S9 et suite** (cf. `PROGRAMME_DEVELOPPEMENT.md`) pour continuer le plan S1→S12 en local.
+2. **Provisionner Supabase + PowerSync** (coût) → appliquer 0001→0009, instance PowerSync, `env.json`, puis valider en live (auth + MFA + CRUD rôles + vente offline→synchro + catalogue partagé + facturation).
 
-> Reco Claude : **vérifier S4** (analyze/test) en tout premier ; puis **1** (S5) pour garder l'élan.
+> Reco Claude : poursuivre la dynamique avec le sprint suivant du programme (S9) tant que le cloud n'est pas provisionné.
 
 Outillage machine : git, Node/npm, Flutter/Dart (`C:\flutter`), VS Code ✓ · Supabase CLI, Docker ✗.
 Lancer l'app configurée : `flutter run --dart-define-from-file=env.json` (modèle : `app/.env.example`).
