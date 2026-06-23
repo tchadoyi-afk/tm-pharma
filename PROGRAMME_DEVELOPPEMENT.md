@@ -231,7 +231,8 @@ La capture GS1 (provenance interne) est au MVP ; l'**interrogation d'une base na
 ### Réapprovisionnement (MVP = assisté ; V2 = automatique)
 - **MVP** : point de commande par produit (seuil + délai fournisseur) → l'IA locale **suggère** quoi recommander et combien → le gérant génère un **bon de commande** (brouillon → envoyé → reçu).
 - **Réception** = entrée en stock tracée (alimente la traçabilité couche A).
-- **V2** : génération **automatique** des commandes + portail fournisseurs + envoi direct.
+- **MVP** (révisé 23/06/2026, gestion fournisseurs complète) : **portail fournisseurs** (échange de commandes/bons de réception, suivi de statut côté fournisseur) inclus dès le MVP, pas seulement le bon de commande brouillon→envoyé→reçu.
+- **V2** : génération **automatique** des commandes (sans validation manuelle) + envoi direct intégré (EDI/API fournisseur).
 
 ### Reprise de données / onboarding d'une nouvelle pharmacie
 Brique de premier plan (adoption). Une nouvelle pharmacie doit être opérationnelle **vite et sans saisie pénible** :
@@ -277,14 +278,14 @@ Brique de premier plan (adoption). Une nouvelle pharmacie doit être opérationn
 > Le **durcissement (sécurité) est un critère de sortie du MVP, pas une option.**
 
 ### PHASE 2 — V2 Croissance & RH (post-MVP)
-- App mobile dirigeant dédiée, **paiements Mobile Money** (Togo + Gabon, câblage UI caisse), pointage RH (QR/NFC), **planning/emploi du temps du personnel** (module sous licence séparée, non inclus dans la licence MVP), portail fournisseurs, **prévisions IA avancées**, validation hiérarchique, anti-fraude ML, **ventes en attente/reprise de vente**, **programme de fidélité client (points/paliers)**, **stats de performance par vendeur**, **multi-boutique/vue consolidée gérant** (à confirmer en pilote).
+- App mobile dirigeant dédiée, **paiements Mobile Money** (Togo + Gabon, câblage UI caisse), pointage RH (QR/NFC), **planning/emploi du temps du personnel** (module sous licence séparée, non inclus dans la licence MVP), génération **automatique** des commandes + EDI/API fournisseur (envoi direct), **prévisions IA avancées**, validation hiérarchique, anti-fraude ML, **ventes en attente/reprise de vente**, **programme de fidélité client (points/paliers)**, **stats de performance par vendeur**, **multi-boutique/vue consolidée gérant** (à confirmer en pilote).
 
 ### PHASE 3 — V3 Écosystème B2B
 - Marketplace pharmaceutique, centrale d'achat, comparateur fournisseurs, téléconsultation, e-prescription, livraison, visiteurs médicaux, **IA visuelle anti-contrefaçon**, **vérification d'authenticité externe (réseau GS1 / base nationale)**, **gestion des salariés au sens large (RH/paie élargie)** — module sous licence séparée, non inclus dans la licence MVP/V2 — ainsi que **devis** (vente B2B), **flux comptables**, **prêt client/crédit** (à valider en pilote), **rappel SMS renouvellement traitement chronique**.
 
 > **Licence par palier (décision 22/06/2026)** : MVP, V2 et V3 sont chacun un palier de licence. Le module **emploi du temps** (V2) et le module **RH/paie élargie** (V3) sont des add-ons sous licence distincte de la licence de base — la pharmacie doit souscrire séparément pour les activer. Gating technique posé dès le MVP (migration `0012_module_licensing.sql` : `tenants.licensed_modules` + RPC `has_licensed_module`), vide par défaut ; aucun code du tronc commun ne doit coder en dur l'accès à ces modules.
 
-> **Gestion des fournisseurs = MVP (décision 22/06/2026)**, pas V2 — c'est la base de l'approvisionnement (réception de stock, bons de commande), donc une dépendance directe du tronc commun. Carnet d'adresses fournisseurs (nom/téléphone/email) géré dans l'écran `Fournisseurs` sous permission `supplier.manage` (lecture sous `stock.view`). Le **portail fournisseurs** (échange de données structuré, suivi de commande côté fournisseur, EDI/API) reste un module V2/V3 plus avancé — l'abstraction `SupplierConnector` évoquée pour ça sera posée quand ce module sera designé.
+> **Gestion des fournisseurs = MVP, et complète (décision 22/06/2026, étendue le 23/06/2026)**, pas V2 — c'est la base de l'approvisionnement (réception de stock, bons de commande), donc une dépendance directe du tronc commun. Carnet d'adresses fournisseurs (nom/téléphone/email) géré dans l'écran `Fournisseurs` sous permission `supplier.manage` (lecture sous `stock.view`). **Extension 23/06/2026** : le **portail fournisseurs** (échange structuré de bons de commande/réception, suivi de statut côté fournisseur via l'abstraction `SupplierConnector`) est lui aussi avancé au MVP, pour offrir une gestion fournisseurs complète dès le pilote — seuls la **génération automatique des commandes** (sans validation manuelle) et l'**EDI/API direct** avec les systèmes fournisseurs restent en V2.
 
 > **Analyse concurrentielle (décision 22/06/2026)** — comparaison de TM Pharma avec un logiciel concurrent (PHARMAXIEL) et avec des logiciels américains/chinois (PioneerRx, RedSail, écosystème pharmacie Alibaba Health), pour identifier les écarts fonctionnels transposables au marché africain.
 > - **Gestion des retours fournisseurs = MVP**, pas V2 — complète le cycle commande/réception déjà au tronc commun (S5/S9), permission `supplier.manage`/`stock.adjust`.
