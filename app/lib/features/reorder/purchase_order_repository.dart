@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../core/sync/sync_service.dart';
 import 'purchase_order_model.dart';
+import 'purchase_order_status.dart';
 import 'reorder_suggestion.dart';
 
 /// Bons de commande (réappro) via la base locale PowerSync (offline-first).
@@ -84,7 +85,18 @@ class PurchaseOrderRepository {
   Future<void> cancel(String purchaseOrderId) =>
       _setStatus(purchaseOrderId, 'CANCELLED');
 
+  /// Applique la transition si elle est valide, sinon ignore la demande
+  /// (l'UI ne propose déjà que des transitions valides, mais ce garde-fou
+  /// protège aussi contre des appels directs au dépôt).
   Future<void> _setStatus(String purchaseOrderId, String status) async {
+    final rows = await _db.getAll(
+      'SELECT status FROM purchase_orders WHERE id = ?',
+      [purchaseOrderId],
+    );
+    if (rows.isEmpty) return;
+    final current = rows.first['status'] as String;
+    if (!canTransition(current, status)) return;
+
     final now = DateTime.now().toUtc().toIso8601String();
     await _db.execute(
       'UPDATE purchase_orders SET status = ?, updated_at = ? WHERE id = ?',

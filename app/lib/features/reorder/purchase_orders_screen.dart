@@ -8,6 +8,7 @@ import '../stock/stock_models.dart';
 import '../stock/stock_repository.dart';
 import 'purchase_order_model.dart';
 import 'purchase_order_repository.dart';
+import 'purchase_order_status.dart';
 
 const _statusLabels = {
   'DRAFT': 'Brouillon',
@@ -58,15 +59,25 @@ class PurchaseOrdersScreen extends ConsumerWidget {
                       for (final s in supplierSnap.data ?? const [])
                         s.id: s.name,
                     };
-                    return ListView.builder(
-                      itemCount: orders.length,
-                      itemBuilder: (context, i) {
-                        final order = orders[i];
-                        return _PurchaseOrderTile(
-                          order: order,
-                          supplierName: order.supplierId == null
-                              ? null
-                              : supplierNames[order.supplierId],
+                    return StreamBuilder<List<StockLine>>(
+                      stream: ref.read(stockRepositoryProvider).watchStockLines(),
+                      builder: (context, stockSnap) {
+                        final productNames = <String, String>{
+                          for (final l in stockSnap.data ?? const [])
+                            l.productId: l.productName,
+                        };
+                        return ListView.builder(
+                          itemCount: orders.length,
+                          itemBuilder: (context, i) {
+                            final order = orders[i];
+                            return _PurchaseOrderTile(
+                              order: order,
+                              supplierName: order.supplierId == null
+                                  ? null
+                                  : supplierNames[order.supplierId],
+                              productNames: productNames,
+                            );
+                          },
                         );
                       },
                     );
@@ -79,10 +90,15 @@ class PurchaseOrdersScreen extends ConsumerWidget {
 }
 
 class _PurchaseOrderTile extends ConsumerWidget {
-  const _PurchaseOrderTile({required this.order, required this.supplierName});
+  const _PurchaseOrderTile({
+    required this.order,
+    required this.supplierName,
+    required this.productNames,
+  });
 
   final PurchaseOrder order;
   final String? supplierName;
+  final Map<String, String> productNames;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -104,7 +120,10 @@ class _PurchaseOrderTile extends ConsumerWidget {
                 for (final item in items)
                   ListTile(
                     dense: true,
-                    title: Text('Produit ${item.productId.substring(0, 8)}'),
+                    title: Text(
+                      productNames[item.productId] ??
+                          'Produit ${item.productId.substring(0, 8)}',
+                    ),
                     trailing: Text('qté ${item.quantity}'),
                   ),
               ],
@@ -126,61 +145,51 @@ class _PurchaseOrderTile extends ConsumerWidget {
     );
   }
 
+  static const _actionLabels = {
+    'SENT': ('Valider et envoyer', Icons.send_outlined),
+    'CONFIRMED': ('Confirmée par le fournisseur', Icons.check_circle_outline),
+    'PARTIALLY_RECEIVED': ('Reçue partiellement', Icons.inventory_outlined),
+    'RECEIVED': ('Reçue intégralement', Icons.check),
+    'CANCELLED': ('Annuler', Icons.close),
+  };
+
+  static final Map<String, Future<void> Function(PurchaseOrderRepository, String)>
+  _actionCallbacks = {
+    'SENT': (repo, id) => repo.markSent(id),
+    'CONFIRMED': (repo, id) => repo.markConfirmed(id),
+    'PARTIALLY_RECEIVED': (repo, id) => repo.markPartiallyReceived(id),
+    'RECEIVED': (repo, id) => repo.markReceived(id),
+    'CANCELLED': (repo, id) => repo.cancel(id),
+  };
+
+  /// Les boutons proposés découlent des transitions valides depuis [status]
+  /// ([allowedNextStatuses]) — un seul point de vérité partagé avec le
+  /// dépôt, qui applique le même garde-fou côté données.
   List<Widget> _actionsFor(
     String status,
     PurchaseOrderRepository repo,
     String orderId,
   ) {
-    switch (status) {
-      case 'DRAFT':
-        return [
-          FilledButton.icon(
-            icon: const Icon(Icons.send_outlined),
-            label: const Text('Valider et envoyer'),
-            onPressed: () => repo.markSent(orderId),
-          ),
-          OutlinedButton.icon(
-            icon: const Icon(Icons.close),
-            label: const Text('Annuler'),
-            onPressed: () => repo.cancel(orderId),
-          ),
-        ];
-      case 'SENT':
-        return [
-          FilledButton.tonalIcon(
-            icon: const Icon(Icons.check_circle_outline),
-            label: const Text('Confirmée par le fournisseur'),
-            onPressed: () => repo.markConfirmed(orderId),
-          ),
-          OutlinedButton.icon(
-            icon: const Icon(Icons.close),
-            label: const Text('Annuler'),
-            onPressed: () => repo.cancel(orderId),
-          ),
-        ];
-      case 'CONFIRMED':
-        return [
-          FilledButton.tonalIcon(
-            icon: const Icon(Icons.inventory_outlined),
-            label: const Text('Reçue partiellement'),
-            onPressed: () => repo.markPartiallyReceived(orderId),
-          ),
-          FilledButton.icon(
-            icon: const Icon(Icons.check),
-            label: const Text('Reçue intégralement'),
-            onPressed: () => repo.markReceived(orderId),
-          ),
-        ];
-      case 'PARTIALLY_RECEIVED':
-        return [
-          FilledButton.icon(
-            icon: const Icon(Icons.check),
-            label: const Text('Reste reçu'),
-            onPressed: () => repo.markReceived(orderId),
-          ),
-        ];
-      default:
-        return const [];
-    }
+    return [
+      for (final next in allowedNextStatuses(status))
+        if (_actionLabels[next] case (final label, final icon))
+          next == 'RECEIVED' || next == 'SENT'
+              ? FilledButton.icon(
+                  icon: Icon(icon),
+                  label: Text(label),
+                  onPressed: () => _actionCallbacks[next]!(repo, orderId),
+                )
+              : next == 'CANCELLED'
+              ? OutlinedButton.icon(
+                  icon: Icon(icon),
+                  label: Text(label),
+                  onPressed: () => _actionCallbacks[next]!(repo, orderId),
+                )
+              : FilledButton.tonalIcon(
+                  icon: Icon(icon),
+                  label: Text(label),
+                  onPressed: () => _actionCallbacks[next]!(repo, orderId),
+                ),
+    ];
   }
 }
