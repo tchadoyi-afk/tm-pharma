@@ -11,11 +11,15 @@ pas à pas sur un vrai VPS avant d'y mettre des données de pharmacie réelles.
 
 ## Contenu
 
-- `docker-compose.yml` : Postgres (base applicative) + GoTrue (Auth Supabase
-  open-source) + service PowerSync Open Edition (sync, self-hébergé, gratuit).
+- `docker-compose.yml` : Postgres (image `supabase/postgres`, fournit le
+  schéma `auth`/`auth.uid()` dont dépendent nos migrations et policies RLS)
+  + GoTrue (Auth Supabase open-source) + service PowerSync Open Edition
+  (sync, self-hébergé, gratuit).
 - `powersync.yaml` : config du service PowerSync (réplication, stockage des
   buckets sur Postgres, règles de sync = `supabase/sync_rules.yaml` existant).
 - `.env.example` : variables à copier en `.env` (secrets réels, jamais commités).
+- `apply_migrations.sh` : applique `supabase/migrations/*.sql` dans l'ordre,
+  de façon idempotente (suivi dans `public.schema_migrations`).
 
 ## Étapes de déploiement (résumé)
 
@@ -25,9 +29,12 @@ pas à pas sur un vrai VPS avant d'y mettre des données de pharmacie réelles.
    Postgres, `JWT_SECRET` aléatoire ≥32 caractères).
 4. `docker compose up -d` pour démarrer Postgres + Auth + PowerSync.
 5. Appliquer les migrations existantes (`supabase/migrations/0001` → la
-   dernière) sur ce Postgres — avec `psql` directement, dans l'ordre des
-   numéros de fichiers (elles sont écrites pour Postgres standard, pas
-   spécifiques à Supabase Cloud).
+   dernière) : `./apply_migrations.sh` (nécessite `psql` installé sur la
+   machine qui lance le script, et le service `postgres` démarré et
+   joignable). Le script est idempotent (table `public.schema_migrations`,
+   relancer ne rejoue pas ce qui est déjà appliqué) — toujours faire un
+   `pg_dump` de sauvegarde avant de l'exécuter sur une base avec des
+   données réelles.
 6. Vérifier que la réplication logique fonctionne : le service PowerSync doit
    démarrer sans erreur et exposer son port (8080 par défaut).
 7. Pointer l'app Flutter vers ce serveur : adapter `app/.env.example` /

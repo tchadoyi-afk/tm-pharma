@@ -17,7 +17,13 @@
 
 services:
   postgres:
-    image: postgres:15
+    # Image Postgres officielle de Supabase (pas un postgres:15 standard) :
+    # elle fournit déjà le schéma `auth` + la fonction `auth.uid()` et les
+    # rôles `anon`/`authenticated`/`service_role` dont dépendent nos
+    # migrations (0001_core.sql et suivantes) et nos policies RLS. Un
+    # Postgres standard ne les a pas — les migrations échoueraient sans
+    # cette base. Tag à vérifier/mettre à jour au moment du déploiement réel.
+    image: supabase/postgres:15.1.0.117
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-tm_pharma}
