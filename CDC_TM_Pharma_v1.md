@@ -28,8 +28,8 @@ MVP enrichi = **référence** du projet. Auto-réapprovisionnement et RH avancé
 | **Caisse & Vente (POS)** | Encaissement tactile rapide, **offline-first** + synchro asynchrone, **scan code-barres** (caméra + douchette) avec recherche manuelle de secours, paiement **espèces**, clôture de caisse. |
 | **Facturation & impression** | **Ticket thermique** (ESC/POS, hors-ligne) + **facture PDF** (A4/A5) **au logo de la pharmacie**, numérotation séquentielle infalsifiable. |
 | **Gestion des stocks** | Entrées/sorties, alertes de rupture, traçabilité fine par lot, **capture GS1** (lot/péremption/GTIN). |
-| **Cycle de vie & péremptions** | Alertes (J-90/30/7), **FEFO**, dons, transferts inter-pharmacies, retours fournisseurs, promotions. |
-| **Réapprovisionnement assisté** | Seuils + suggestions IA → **bon de commande** (auto-réappro = V2). |
+| **Cycle de vie & péremptions** | Alertes proactives (J-90/30/7), **FEFO**, dons, transferts inter-pharmacies, retours fournisseurs, **rebuts (workflow formalisé péremption→rebut)**, promotions. |
+| **Gestion fournisseurs (complète)** | Carnet fournisseurs, seuils + suggestions IA → **bon de commande** (brouillon → envoyé → reçu), **portail fournisseurs** (échange structuré commandes/réceptions, suivi de statut côté fournisseur), retours fournisseurs. **Validation manuelle obligatoire avant tout envoi de commande — règle invariante à tous les paliers (MVP/V2/V3), aucune automatisation ne peut envoyer une commande sans confirmation humaine.** (auto-création de brouillon par seuil = V2, toujours soumise à cette validation). |
 | **Reprise de données / onboarding** | Import **Excel/CSV**, catalogue de référence DCI, inventaire initial assisté, assistant guidé. |
 | **Mini IA (cœur de l'app)** | Étage local hors-ligne (FEFO, ruptures, réappro, anti-fraude) + assistant langage naturel online. |
 | **Habilitation fine** | RBAC granulaire (permissions atomiques) + validation hiérarchique. |
@@ -39,9 +39,11 @@ MVP enrichi = **référence** du projet. Auto-réapprovisionnement et RH avancé
 ---
 
 ## 03 · Roadmap évolutive
-- **V2 — Croissance & RH** : app mobile dirigeant, **paiements Mobile Money intégrés** (Togo + Gabon), pointage personnel (QR/NFC), portail fournisseurs, **auto-réapprovisionnement**, IA prévisionnelle avancée, validation hiérarchique étendue, anti-fraude ML.
-- **V3 — Écosystème B2B** : marketplace pharmaceutique, centrale d'achat, comparateur fournisseurs, téléconsultation, e-prescription, livraison, visiteurs médicaux, **IA visuelle anti-contrefaçon**, **vérification d'authenticité externe (réseau GS1 / base nationale)**.
+- **V2 — Croissance & RH** : app mobile dirigeant, **paiements Mobile Money intégrés** (Togo + Gabon), pointage personnel (QR/NFC), planning/emploi du temps (licence séparée), **création automatique de brouillons de commande par seuil** + EDI/API fournisseur direct (validation manuelle toujours requise), IA prévisionnelle avancée, validation hiérarchique étendue, anti-fraude ML, **ventes en attente/reprise de vente**, **programme de fidélité client (points/paliers)**, **stats de performance par vendeur**, **multi-boutique/vue consolidée gérant** (à confirmer en pilote).
+- **V3 — Écosystème B2B** : marketplace pharmaceutique, centrale d'achat, comparateur fournisseurs, téléconsultation, e-prescription, livraison, visiteurs médicaux, **IA visuelle anti-contrefaçon**, **vérification d'authenticité externe (réseau GS1 / base nationale)**, **gestion des salariés au sens large (RH/paie élargie, licence séparée)**, **devis** (vente B2B), **flux comptables**, **prêt client/crédit** (à valider en pilote), **rappel SMS renouvellement traitement chronique**.
 - **V4 — Impact sectoriel** : e-learning & certifications du personnel officinal, bourse pharmaceutique continentale.
+
+> ℹ️ Répartition issue de l'analyse concurrentielle du 22-23/06/2026 (comparaison PHARMAXIEL + logiciels US/Chine) — détail des décisions dans `PROGRAMME_DEVELOPPEMENT.md` §8.
 
 ---
 
@@ -143,11 +145,11 @@ Dashboard 3 niveaux (temps réel / pilotage / stratégique), exportable, filtré
 | **S2** | Moteur de synchronisation offline (PowerSync + Drift) — 🚩 vente hors-ligne synchronisée sans perte |
 | **S3** | Auth, RBAC fin & habilitations (MFA, validation hiérarchique) |
 | **S4** | Catalogue & référentiel produits |
-| **S5** | Stocks & lots + scan GS1 |
+| **S5** | Stocks & lots + scan GS1 + **gestion fournisseurs complète** (carnet, bons de commande, **portail fournisseurs**) |
 | **S6** | Reprise de données / onboarding |
 | **S7** | POS offline-first (caisse, scan, espèces) |
 | **S8** | Facturation & impression — 🚩 **JALON PILOTE** (encaisse + imprime, hors-ligne) |
-| **S9** | Cycle de vie & péremptions (FEFO, dons, transferts, retours, promos) |
+| **S9** | Cycle de vie & péremptions (FEFO, alertes proactives, dons, transferts, retours fournisseurs, **rebuts**, promos) |
 | **S10** | Mini IA locale + réappro assisté |
 | **S11** | Dashboard, KPIs, assistant IA & traçabilité consultable |
 | **S12** | Durcissement, pentest & pilote terrain (2–3 officines Togo & Gabon) — 🏁 **MVP livré** |
