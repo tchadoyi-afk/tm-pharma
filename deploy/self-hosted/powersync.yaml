@@ -1,0 +1,35 @@
+# ============================================================================
+# Config du service PowerSync Open Edition (self-hébergé).
+# Référence : https://docs.powersync.com/configuration/powersync-service/self-hosted-instances
+# À revalider contre la doc PowerSync au moment du déploiement réel — le
+# schéma de config a pu évoluer depuis la rédaction de ce fichier (2026-06-22).
+# ============================================================================
+
+replication:
+  connections:
+    - type: postgresql
+      uri: !env POWERSYNC_PG_URI
+      # Slot de replication logique dédié à PowerSync.
+      slot_name: tm_pharma_powersync
+
+# Stockage des buckets de synchro sur la même base Postgres (pas MongoDB),
+# pour rester sur une seule techno en phase pilote — voir décision
+# d'hébergement dans PROGRAMME_DEVELOPPEMENT.md.
+storage:
+  type: postgresql
+  uri: !env POWERSYNC_PG_URI
+
+# Règles de synchro par tenant : fichier déjà existant et entretenu à
+# chaque sprint dans supabase/sync_rules.yaml (monté en lecture seule par
+# docker-compose.yml). Ne pas dupliquer son contenu ici.
+sync_rules:
+  path: /app/sync_rules.yaml
+
+port: 8080
+
+# JWT émis par l'Auth self-hébergée (GoTrue) — même secret que GOTRUE_JWT_SECRET
+# dans docker-compose.yml, pour que PowerSync valide les tokens des utilisateurs.
+client_auth:
+  jwks_uri: null
+  static_keys:
+    - !env POWERSYNC_JWT_SECRET
