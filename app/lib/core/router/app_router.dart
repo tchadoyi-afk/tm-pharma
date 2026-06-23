@@ -18,6 +18,7 @@ import '../../features/onboarding/onboarding_screen.dart';
 import '../../features/pos/pos_demo_screen.dart';
 import '../../features/pos/pos_screen.dart';
 import '../../features/promotions/promotions_screen.dart';
+import '../../features/reorder/purchase_orders_screen.dart';
 import '../../features/reorder/reorder_screen.dart';
 import '../../features/stock/stock_screen.dart';
 import '../../features/suppliers/suppliers_screen.dart';
@@ -94,6 +95,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/reorder',
         name: 'reorder',
         builder: (context, state) => const ReorderScreen(),
+      ),
+      GoRoute(
+        path: '/purchase-orders',
+        name: 'purchase-orders',
+        builder: (context, state) => const PurchaseOrdersScreen(),
       ),
       GoRoute(
         path: '/dashboard',

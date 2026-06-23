@@ -187,6 +187,15 @@ class HomeScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                   PermissionGate(
+                    permission: Permissions.purchaseOrder,
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.receipt_long_outlined),
+                      label: const Text('Bons de commande'),
+                      onPressed: () => context.go('/purchase-orders'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  PermissionGate(
                     permission: Permissions.auditViewOwn,
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.history_outlined),

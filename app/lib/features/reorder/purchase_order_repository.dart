@@ -62,11 +62,33 @@ class PurchaseOrderRepository {
     return orderId;
   }
 
-  Future<void> markSent(String purchaseOrderId) async {
+  /// Envoi de la commande au fournisseur — toujours une action humaine
+  /// explicite (validation manuelle obligatoire, invariant tous paliers) :
+  /// aucun appelant de ce dépôt ne déclenche `markSent` automatiquement.
+  Future<void> markSent(String purchaseOrderId) =>
+      _setStatus(purchaseOrderId, 'SENT');
+
+  /// Portail fournisseurs : le fournisseur a accusé réception de la commande
+  /// (avant livraison physique des produits).
+  Future<void> markConfirmed(String purchaseOrderId) =>
+      _setStatus(purchaseOrderId, 'CONFIRMED');
+
+  /// Marchandise reçue intégralement.
+  Future<void> markReceived(String purchaseOrderId) =>
+      _setStatus(purchaseOrderId, 'RECEIVED');
+
+  /// Marchandise reçue partiellement (le reste reste attendu).
+  Future<void> markPartiallyReceived(String purchaseOrderId) =>
+      _setStatus(purchaseOrderId, 'PARTIALLY_RECEIVED');
+
+  Future<void> cancel(String purchaseOrderId) =>
+      _setStatus(purchaseOrderId, 'CANCELLED');
+
+  Future<void> _setStatus(String purchaseOrderId, String status) async {
     final now = DateTime.now().toUtc().toIso8601String();
     await _db.execute(
-      "UPDATE purchase_orders SET status = 'SENT', updated_at = ? WHERE id = ?",
-      [now, purchaseOrderId],
+      'UPDATE purchase_orders SET status = ?, updated_at = ? WHERE id = ?',
+      [status, now, purchaseOrderId],
     );
   }
 }

@@ -14,6 +14,7 @@ const _exitTypeLabels = {
   'DONATION': 'Don',
   'SUPPLIER_RETURN': 'Retour fournisseur',
   'TRANSFER': 'Transfert vers une autre pharmacie',
+  'SCRAP': 'Rebut (périmé / abîmé)',
 };
 
 /// Cycle de vie & péremptions (Sprint 9) : alertes J-90/J-30/J-7 sur les

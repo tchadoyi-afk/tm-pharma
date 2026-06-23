@@ -243,7 +243,12 @@ class StockRepository {
     String? reason,
     String? createdBy,
   }) async {
-    assert(type == 'DONATION' || type == 'SUPPLIER_RETURN' || type == 'TRANSFER');
+    assert(
+      type == 'DONATION' ||
+          type == 'SUPPLIER_RETURN' ||
+          type == 'TRANSFER' ||
+          type == 'SCRAP',
+    );
     if (quantity <= 0) return;
     final now = DateTime.now().toUtc().toIso8601String();
     await _db.execute(
