@@ -1,0 +1,32 @@
+# ============================================================================
+# Passerelle API minimale (Kong, déclaratif) reproduisant les chemins
+# attendus par `supabase_flutter` côté app (Env.supabaseUrl = une seule URL
+# de base, avec /rest/v1/... et /auth/v1/... routés vers les bons services).
+# C'est ce que fait Kong sur Supabase Cloud et dans le self-hosting officiel
+# Supabase — on reprend le même principe en minimal ici.
+# Référence à revalider au déploiement : https://github.com/supabase/supabase/tree/master/docker
+# ============================================================================
+_format_version: "2.1"
+
+services:
+  - name: rest
+    url: http://rest:3000
+    routes:
+      - name: rest-v1
+        paths:
+          - /rest/v1
+    plugins:
+      - name: strip-path
+        config:
+          strip_path: false
+
+  - name: auth
+    url: http://auth:9999
+    routes:
+      - name: auth-v1
+        paths:
+          - /auth/v1
+    plugins:
+      - name: strip-path
+        config:
+          strip_path: true

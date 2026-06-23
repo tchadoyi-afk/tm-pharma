@@ -13,8 +13,14 @@ pas à pas sur un vrai VPS avant d'y mettre des données de pharmacie réelles.
 
 - `docker-compose.yml` : Postgres (image `supabase/postgres`, fournit le
   schéma `auth`/`auth.uid()` dont dépendent nos migrations et policies RLS)
-  + GoTrue (Auth Supabase open-source) + service PowerSync Open Edition
-  (sync, self-hébergé, gratuit).
+  + GoTrue (Auth) + PostgREST (API REST, utilisée par `supabase_flutter`
+  pour envoyer les écritures locales — voir `supabase_connector.dart`) +
+  Kong (passerelle unique qui route `/rest/v1` et `/auth/v1`, exactement
+  comme Supabase Cloud, pour que `supabase_flutter` fonctionne sans
+  modification) + service PowerSync Open Edition (sync, self-hébergé,
+  gratuit).
+- `kong.yml` : config déclarative de la passerelle (routes `/rest/v1` →
+  PostgREST, `/auth/v1` → GoTrue).
 - `powersync.yaml` : config du service PowerSync (réplication, stockage des
   buckets sur Postgres, règles de sync = `supabase/sync_rules.yaml` existant).
 - `.env.example` : variables à copier en `.env` (secrets réels, jamais commités).
@@ -27,7 +33,8 @@ pas à pas sur un vrai VPS avant d'y mettre des données de pharmacie réelles.
 2. Copier ce dossier `deploy/self-hosted/` sur le VPS.
 3. `cp .env.example .env` puis remplir des secrets réels forts (mot de passe
    Postgres, `JWT_SECRET` aléatoire ≥32 caractères).
-4. `docker compose up -d` pour démarrer Postgres + Auth + PowerSync.
+4. `docker compose up -d` pour démarrer les 5 services : Postgres, Auth
+   (GoTrue), PostgREST, Kong (passerelle, port 8000) et PowerSync.
 5. Appliquer les migrations existantes (`supabase/migrations/0001` → la
    dernière) : `./apply_migrations.sh` (nécessite `psql` installé sur la
    machine qui lance le script, et le service `postgres` démarré et
@@ -37,9 +44,20 @@ pas à pas sur un vrai VPS avant d'y mettre des données de pharmacie réelles.
    données réelles.
 6. Vérifier que la réplication logique fonctionne : le service PowerSync doit
    démarrer sans erreur et exposer son port (8080 par défaut).
-7. Pointer l'app Flutter vers ce serveur : adapter `app/.env.example` /
-   `env.json` avec l'URL Postgres/Auth et l'URL du service PowerSync
-   self-hébergé (au lieu des URLs Supabase Cloud + PowerSync Cloud).
+7. Pointer l'app Flutter vers ce serveur, via `app/.env.example` / `env.json`
+   (ou `--dart-define`) :
+   - `SUPABASE_URL` = l'URL de Kong (passerelle unique), ex.
+     `http://<host-vps>:8000` — **pas** l'URL directe de GoTrue ou PostgREST.
+   - `SUPABASE_KEY` = un JWT signé avec le même `JWT_SECRET` que dans `.env`,
+     avec le claim `role: anon` (rôle utilisé par `supabase_flutter` pour les
+     requêtes non authentifiées initiales). Sur Supabase Cloud ce JWT est
+     généré et affiché automatiquement dans le dashboard ; en self-hosting il
+     n'y a pas de dashboard, il faut le générer soi-même, par ex. via
+     https://jwt.io (algorithme HS256, secret = `JWT_SECRET`, payload
+     `{"role": "anon", "iss": "supabase"}`, sans expiration ou avec une
+     expiration longue) ou un script `jwt` en ligne de commande. Ne jamais
+     committer ce JWT généré (comme pour `.env`).
+   - `POWERSYNC_URL` = l'URL du service PowerSync self-hébergé (port 8080).
 8. Tester un scénario complet : créer un tenant + utilisateur, se connecter
    depuis l'app, faire une vente hors-ligne, vérifier la synchro.
 

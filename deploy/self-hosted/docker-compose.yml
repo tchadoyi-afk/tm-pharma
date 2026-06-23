@@ -3,9 +3,20 @@
 # Décision : PROGRAMME_DEVELOPPEMENT.md §0 (stratégie d'hébergement, révisée
 # le 2026-06-22) + CONTEXTE_RAPIDE.md.
 #
-# 3 services :
+# 5 services :
 #   - postgres   : base applicative (RLS, migrations supabase/migrations/).
 #   - auth       : GoTrue (Auth Supabase open-source), JWT pour l'app + PowerSync.
+#   - rest       : PostgREST — expose Postgres en API REST, c'est ce
+#                  qu'appelle `supabase_flutter` côté app (`client.from(table)
+#                  .upsert(...)` dans supabase_connector.dart pour envoyer les
+#                  écritures locales). Sans ce service, l'upload de la file
+#                  CRUD locale vers le serveur échouerait silencieusement.
+#   - kong       : passerelle API unique (déclarative, sans base) qui route
+#                  /rest/v1 → rest et /auth/v1 → auth sous une seule URL/port
+#                  (8000), exactement comme Kong sur Supabase Cloud — requis
+#                  car `supabase_flutter` (Env.supabaseUrl) suppose une URL de
+#                  base unique avec ces sous-chemins, pas des services exposés
+#                  séparément sur des ports différents.
 #   - powersync  : service de synchro PowerSync Open Edition (self-hébergé,
 #                  gratuit — licence FSL convertie en Apache 2.0).
 #
@@ -54,10 +65,50 @@ services:
       GOTRUE_JWT_SECRET: ${JWT_SECRET:-changeme-32-caracteres-minimum}
       GOTRUE_JWT_EXP: "3600"
       GOTRUE_DISABLE_SIGNUP: "false"
-      API_EXTERNAL_URL: ${AUTH_EXTERNAL_URL:-http://localhost:9999}
+      # Vu de l'extérieur, l'Auth est servie via Kong sous /auth/v1 (même URL
+      # de base que le reste de l'API, comme sur Supabase Cloud).
+      API_EXTERNAL_URL: ${AUTH_EXTERNAL_URL:-http://localhost:8000/auth/v1}
       PORT: "9999"
+    # Pas de port exposé directement : on passe par Kong (service `kong`,
+    # port 8000) pour reproduire l'URL unique attendue par supabase_flutter.
+
+  rest:
+    image: postgrest/postgrest:v12.2.0
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: postgres://${POSTGRES_USER:-tm_pharma}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-tm_pharma}?sslmode=disable
+      PGRST_DB_SCHEMAS: public
+      # Rôle utilisé pour les requêtes non authentifiées (équivalent du
+      # rôle `anon` de Supabase). Les requêtes authentifiées passent par le
+      # JWT (claim `role`) et héritent des droits `authenticated` — la RLS
+      # des migrations fait ensuite l'isolation par tenant/permission.
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET:-changeme-32-caracteres-minimum}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+    # Pas de port exposé directement : on passe par Kong (service `kong`,
+    # port 8000) pour reproduire l'URL unique attendue par supabase_flutter.
+
+  kong:
+    # Passerelle unique vue par l'app (Env.supabaseUrl) : route /rest/v1 vers
+    # PostgREST et /auth/v1 vers GoTrue, exactement comme le fait Supabase
+    # Cloud — sans ça, supabase_flutter (qui suppose ces chemins sous une
+    # seule URL) ne fonctionnerait pas correctement.
+    image: kong:3.6
+    restart: unless-stopped
+    depends_on:
+      - rest
+      - auth
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /kong.yml
+      KONG_PROXY_LISTEN: "0.0.0.0:8000"
+    volumes:
+      - ./kong.yml:/kong.yml:ro
     ports:
-      - "9999:9999"
+      - "8000:8000"
 
   powersync:
     image: journeyapps/powersync-service:latest
