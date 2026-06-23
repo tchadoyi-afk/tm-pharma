@@ -2,18 +2,21 @@
 class PurchaseOrder {
   const PurchaseOrder({
     required this.id,
+    required this.tenantId,
     required this.status,
     required this.createdAt,
     this.supplierId,
   });
 
   final String id;
+  final String tenantId;
   final String? supplierId;
   final String status;
   final DateTime createdAt;
 
   factory PurchaseOrder.fromRow(Map<String, Object?> row) => PurchaseOrder(
     id: row['id'] as String,
+    tenantId: row['tenant_id'] as String,
     supplierId: row['supplier_id'] as String?,
     status: row['status'] as String,
     createdAt: DateTime.parse(row['created_at'] as String),
