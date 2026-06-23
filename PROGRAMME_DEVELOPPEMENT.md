@@ -264,7 +264,7 @@ Brique de premier plan (adoption). Une nouvelle pharmacie doit être opérationn
 | **S6** | **Reprise de données / onboarding** : import **Excel/CSV** (prévisu + doublons), inventaire initial assisté, **assistant d'onboarding** guidé. | Une pharmacie peut être onboardée rapidement |
 | **S7** | **POS offline-first (caisse)** : encaissement tactile, panier, **scan code-barres caisse** + recherche manuelle, paiement **espèces**, clôture de caisse. | Caisse fonctionnelle hors-ligne |
 | **S8** | **Facturation & impression** : `invoices` (numérotation séquentielle), **ticket thermique ESC/POS**, **facture PDF avec logo**. | 🚩 **JALON PILOTE** : pharmacie onboardée qui encaisse en scannant et imprime ses tickets/factures, hors-ligne |
-| **S9** | **Cycle de vie & péremptions** : **FEFO**, alertes J-90/J-30/J-7, dons, transferts inter-pharmacies, retours fournisseurs, promotions. | Pertes maîtrisées |
+| **S9** | **Cycle de vie & péremptions** : **FEFO**, alertes J-90/J-30/J-7, dons, transferts inter-pharmacies, retours fournisseurs, **rebuts (workflow formalisé)**, promotions. | Pertes maîtrisées |
 | **S10** | **Mini IA étage 1 (local) + réappro** : alertes ruptures, **suggestions de réappro + bon de commande**, anti-fraude heuristique, FEFO intelligent. | IA utile hors-ligne |
 | **S11** | **Dashboard, KPIs, assistant IA (étage 2) & traçabilité consultable** : tableau de bord 3 niveaux, KPIs précis, **assistant Claude online**, **fiche traçabilité lot + journal sous habilitation**, exports. | Pilotage + traçabilité restituée |
 | **S12** | **Durcissement, pentest & pilote terrain** : tests d'isolation RLS, conflits de synchro, audit infalsifiable, OWASP Top 10, résilience réseau, i18n complet ; déploiement **2–3 officines Togo & Gabon**, retours + durcissement final. | 🏁 **MVP complet livré & durci** |
@@ -277,14 +277,29 @@ Brique de premier plan (adoption). Une nouvelle pharmacie doit être opérationn
 > Le **durcissement (sécurité) est un critère de sortie du MVP, pas une option.**
 
 ### PHASE 2 — V2 Croissance & RH (post-MVP)
-- App mobile dirigeant dédiée, **paiements Mobile Money** (Togo + Gabon), pointage RH (QR/NFC), **planning/emploi du temps du personnel** (module sous licence séparée, non inclus dans la licence MVP), portail fournisseurs, **prévisions IA avancées**, validation hiérarchique, anti-fraude ML.
+- App mobile dirigeant dédiée, **paiements Mobile Money** (Togo + Gabon, câblage UI caisse), pointage RH (QR/NFC), **planning/emploi du temps du personnel** (module sous licence séparée, non inclus dans la licence MVP), portail fournisseurs, **prévisions IA avancées**, validation hiérarchique, anti-fraude ML, **ventes en attente/reprise de vente**, **programme de fidélité client (points/paliers)**, **stats de performance par vendeur**, **multi-boutique/vue consolidée gérant** (à confirmer en pilote).
 
 ### PHASE 3 — V3 Écosystème B2B
-- Marketplace pharmaceutique, centrale d'achat, comparateur fournisseurs, téléconsultation, e-prescription, livraison, visiteurs médicaux, **IA visuelle anti-contrefaçon**, **vérification d'authenticité externe (réseau GS1 / base nationale)**, **gestion des salariés au sens large (RH/paie élargie)** — module sous licence séparée, non inclus dans la licence MVP/V2.
+- Marketplace pharmaceutique, centrale d'achat, comparateur fournisseurs, téléconsultation, e-prescription, livraison, visiteurs médicaux, **IA visuelle anti-contrefaçon**, **vérification d'authenticité externe (réseau GS1 / base nationale)**, **gestion des salariés au sens large (RH/paie élargie)** — module sous licence séparée, non inclus dans la licence MVP/V2 — ainsi que **devis** (vente B2B), **flux comptables**, **prêt client/crédit** (à valider en pilote), **rappel SMS renouvellement traitement chronique**.
 
 > **Licence par palier (décision 22/06/2026)** : MVP, V2 et V3 sont chacun un palier de licence. Le module **emploi du temps** (V2) et le module **RH/paie élargie** (V3) sont des add-ons sous licence distincte de la licence de base — la pharmacie doit souscrire séparément pour les activer. Gating technique posé dès le MVP (migration `0012_module_licensing.sql` : `tenants.licensed_modules` + RPC `has_licensed_module`), vide par défaut ; aucun code du tronc commun ne doit coder en dur l'accès à ces modules.
 
 > **Gestion des fournisseurs = MVP (décision 22/06/2026)**, pas V2 — c'est la base de l'approvisionnement (réception de stock, bons de commande), donc une dépendance directe du tronc commun. Carnet d'adresses fournisseurs (nom/téléphone/email) géré dans l'écran `Fournisseurs` sous permission `supplier.manage` (lecture sous `stock.view`). Le **portail fournisseurs** (échange de données structuré, suivi de commande côté fournisseur, EDI/API) reste un module V2/V3 plus avancé — l'abstraction `SupplierConnector` évoquée pour ça sera posée quand ce module sera designé.
+
+> **Analyse concurrentielle (décision 22/06/2026)** — comparaison de TM Pharma avec un logiciel concurrent (PHARMAXIEL) et avec des logiciels américains/chinois (PioneerRx, RedSail, écosystème pharmacie Alibaba Health), pour identifier les écarts fonctionnels transposables au marché africain.
+> - **Gestion des retours fournisseurs = MVP**, pas V2 — complète le cycle commande/réception déjà au tronc commun (S5/S9), permission `supplier.manage`/`stock.adjust`.
+> - **Gestion des rebuts (workflow formalisé péremption→rebut) = MVP** — actuellement géré de façon ad hoc via FEFO/`lifecycle/`, à formaliser en écran dédié dès le MVP pour la traçabilité des pertes.
+> - **Alertes péremption proactives** : déjà couvertes au MVP (S9, `lifecycle/expiry_alerts.dart`, seuils J-90/J-30/J-7) — confirmé après comparaison avec les logiciels US, pas un écart réel, rien à ajouter.
+> - **Devis** (vente B2B) → **V3** — pertinent seulement si extension vers la vente à des structures (cliniques) plutôt que comptoir.
+> - **Flux comptables** (proche compta formelle) → **V3** — pertinent seulement pour des structures plus grosses ou intégration cabinets comptables.
+> - **Prêt client / crédit** → **V3** — besoin réel probable sur ce marché (crédit informel courant en pharmacie de quartier) mais à valider par les retours du pilote avant développement ; nécessitera `loans`/`loan_repayments`.
+> - **Ventes en attente / reprise de vente** → V2 — état panier en pause persisté, faible coût technique.
+> - **Mobile Money en caisse (câblage UI)** → V2 — le schéma `payment_mobile_money` existe déjà côté données (S1/S2), juste l'écran caisse à câbler.
+> - **Programme de fidélité client (points/paliers)** → V2 — inspiré du 会员管理 (member management) chinois et des programmes loyalty US, fort ROI/rétention attendu pour un faible coût de dev.
+> - **Stats de performance par vendeur** → V2 — extension du module `audit` existant, inspiré des rapports employés US/Chine.
+> - **Multi-boutique, vue consolidée gérant** → V2 (V3 si pas de besoin confirmé en pilote) — pertinent si un même client gère déjà plusieurs officines.
+> - **Rappel SMS renouvellement traitement chronique** → V3 — nécessite intégration SMS gateway (coût récurrent), besoin réel à valider avant dev.
+> - **Vente tiers payant / assurance**, **retour télétransmission**, **mode dégradé sans alimentation électrique** → écartés ou hors périmètre logiciel (le dernier point relève du matériel/hardware, cf. §0 stratégie d'hébergement) ; tiers payant/télétransmission à ne développer que si confirmé par le terrain (héritage probable du marché français/maghrébin de PHARMAXIEL, pas certain d'être pertinent au Togo/Gabon).
 
 ### PHASE 4 — V4 Impact sectoriel
 - E-learning personnel officinal, certifications, bourse pharmaceutique continentale.
