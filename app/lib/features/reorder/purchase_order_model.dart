@@ -28,16 +28,24 @@ class PurchaseOrderItem {
     required this.id,
     required this.productId,
     required this.quantity,
+    this.receivedQuantity = 0,
   });
 
   final String id;
   final String productId;
   final int quantity;
+  final int receivedQuantity;
+
+  /// Quantité encore attendue sur cette ligne.
+  int get remainingQuantity => quantity - receivedQuantity;
+
+  bool get isFullyReceived => receivedQuantity >= quantity;
 
   factory PurchaseOrderItem.fromRow(Map<String, Object?> row) =>
       PurchaseOrderItem(
         id: row['id'] as String,
         productId: row['product_id'] as String,
         quantity: (row['quantity'] as num).toInt(),
+        receivedQuantity: (row['received_quantity'] as num?)?.toInt() ?? 0,
       );
 }

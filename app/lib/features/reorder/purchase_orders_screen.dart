@@ -124,22 +124,29 @@ class _PurchaseOrderTile extends ConsumerWidget {
                       productNames[item.productId] ??
                           'Produit ${item.productId.substring(0, 8)}',
                     ),
-                    trailing: Text('qté ${item.quantity}'),
+                    trailing: Text(
+                      item.receivedQuantity == 0
+                          ? 'qté ${item.quantity}'
+                          : 'qté ${item.quantity} (reçu ${item.receivedQuantity})',
+                    ),
                   ),
+                PermissionGate(
+                  permission: Permissions.purchaseOrder,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _actionsFor(context, order, repo, items, productNames),
+                    ),
+                  ),
+                ),
               ],
             );
           },
-        ),
-        PermissionGate(
-          permission: Permissions.purchaseOrder,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _actionsFor(order.status, repo, order.id),
-            ),
-          ),
         ),
       ],
     );
@@ -147,49 +154,147 @@ class _PurchaseOrderTile extends ConsumerWidget {
 
   static const _actionLabels = {
     'SENT': ('Valider et envoyer', Icons.send_outlined),
-    'CONFIRMED': ('Confirmée par le fournisseur', Icons.check_circle_outline),
-    'PARTIALLY_RECEIVED': ('Reçue partiellement', Icons.inventory_outlined),
-    'RECEIVED': ('Reçue intégralement', Icons.check),
     'CANCELLED': ('Annuler', Icons.close),
   };
 
   static final Map<String, Future<void> Function(PurchaseOrderRepository, String)>
   _actionCallbacks = {
     'SENT': (repo, id) => repo.markSent(id),
-    'CONFIRMED': (repo, id) => repo.markConfirmed(id),
-    'PARTIALLY_RECEIVED': (repo, id) => repo.markPartiallyReceived(id),
-    'RECEIVED': (repo, id) => repo.markReceived(id),
     'CANCELLED': (repo, id) => repo.cancel(id),
   };
 
-  /// Les boutons proposés découlent des transitions valides depuis [status]
-  /// ([allowedNextStatuses]) — un seul point de vérité partagé avec le
-  /// dépôt, qui applique le même garde-fou côté données.
+  /// Les boutons proposés découlent des transitions valides depuis le
+  /// statut courant ([allowedNextStatuses]) — un seul point de vérité
+  /// partagé avec le dépôt, qui applique le même garde-fou côté données.
+  /// CONFIRMED et PARTIALLY_RECEIVED se résolvent en un seul bouton
+  /// « Réceptionner » : c'est [PurchaseOrderRepository.receiveItems] qui
+  /// décide ensuite, ligne par ligne, si la commande devient RECEIVED ou
+  /// reste PARTIALLY_RECEIVED.
   List<Widget> _actionsFor(
-    String status,
+    BuildContext context,
+    PurchaseOrder order,
     PurchaseOrderRepository repo,
-    String orderId,
+    List<PurchaseOrderItem> items,
+    Map<String, String> productNames,
   ) {
+    final next = allowedNextStatuses(order.status);
     return [
-      for (final next in allowedNextStatuses(status))
-        if (_actionLabels[next] case (final label, final icon))
-          next == 'RECEIVED' || next == 'SENT'
+      if (next.contains('RECEIVED') || next.contains('PARTIALLY_RECEIVED'))
+        FilledButton.icon(
+          icon: const Icon(Icons.inventory_outlined),
+          label: const Text('Réceptionner'),
+          onPressed: () => _openReceiveDialog(context, repo, order.id, items, productNames),
+        ),
+      for (final status in next)
+        if (_actionLabels[status] case (final label, final icon))
+          status == 'SENT'
               ? FilledButton.icon(
                   icon: Icon(icon),
                   label: Text(label),
-                  onPressed: () => _actionCallbacks[next]!(repo, orderId),
+                  onPressed: () => _actionCallbacks[status]!(repo, order.id),
                 )
-              : next == 'CANCELLED'
-              ? OutlinedButton.icon(
+              : OutlinedButton.icon(
                   icon: Icon(icon),
                   label: Text(label),
-                  onPressed: () => _actionCallbacks[next]!(repo, orderId),
-                )
-              : FilledButton.tonalIcon(
-                  icon: Icon(icon),
-                  label: Text(label),
-                  onPressed: () => _actionCallbacks[next]!(repo, orderId),
+                  onPressed: () => _actionCallbacks[status]!(repo, order.id),
                 ),
     ];
+  }
+
+  void _openReceiveDialog(
+    BuildContext context,
+    PurchaseOrderRepository repo,
+    String orderId,
+    List<PurchaseOrderItem> items,
+    Map<String, String> productNames,
+  ) {
+    final pending = items.where((i) => i.remainingQuantity > 0).toList();
+    showDialog<void>(
+      context: context,
+      builder: (context) => _ReceiveDialog(
+        repo: repo,
+        orderId: orderId,
+        items: pending,
+        productNames: productNames,
+      ),
+    );
+  }
+}
+
+/// Saisie des quantités effectivement reçues pour chaque ligne en attente,
+/// par défaut le reliquat (réception intégrale en un clic), modifiable pour
+/// une réception partielle.
+class _ReceiveDialog extends StatefulWidget {
+  const _ReceiveDialog({
+    required this.repo,
+    required this.orderId,
+    required this.items,
+    required this.productNames,
+  });
+
+  final PurchaseOrderRepository repo;
+  final String orderId;
+  final List<PurchaseOrderItem> items;
+  final Map<String, String> productNames;
+
+  @override
+  State<_ReceiveDialog> createState() => _ReceiveDialogState();
+}
+
+class _ReceiveDialogState extends State<_ReceiveDialog> {
+  late final Map<String, TextEditingController> _controllers = {
+    for (final item in widget.items)
+      item.id: TextEditingController(text: '${item.remainingQuantity}'),
+  };
+
+  @override
+  void dispose() {
+    for (final c in _controllers.values) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _confirm() async {
+    final quantities = {
+      for (final item in widget.items)
+        item.id: int.tryParse(_controllers[item.id]!.text) ?? 0,
+    };
+    await widget.repo.receiveItems(widget.orderId, quantities);
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Réceptionner la commande'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final item in widget.items)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: TextField(
+                  controller: _controllers[item.id],
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: widget.productNames[item.productId] ??
+                        'Produit ${item.productId.substring(0, 8)}',
+                    helperText: 'Reliquat attendu : ${item.remainingQuantity}',
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Annuler'),
+        ),
+        FilledButton(onPressed: _confirm, child: const Text('Valider')),
+      ],
+    );
   }
 }

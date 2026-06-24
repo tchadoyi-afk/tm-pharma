@@ -75,34 +75,68 @@ class PurchaseOrderRepository {
   Future<void> markConfirmed(String purchaseOrderId) =>
       _setStatus(purchaseOrderId, 'CONFIRMED');
 
-  /// Marchandise reçue intégralement : crée/complète les lots de chaque
-  /// ligne de commande pour la quantité commandée (traçabilité GS1 commune
-  /// avec une réception manuelle). La réception partielle (quantités
-  /// différentes par ligne) reste hors scope MVP — voir [markPartiallyReceived].
-  Future<void> markReceived(String purchaseOrderId, {String? createdBy}) async {
+  /// Réceptionne (en tout ou partie) les lignes de la commande : pour
+  /// chaque entrée `itemId -> quantité reçue maintenant`, crée le lot et le
+  /// mouvement de stock (traçabilité GS1), puis incrémente la quantité
+  /// déjà reçue de la ligne. La quantité est plafonnée au reliquat de la
+  /// ligne (pas de surréception). À la fin, la commande passe à RECEIVED
+  /// si toutes les lignes sont complètes, sinon à PARTIALLY_RECEIVED.
+  Future<void> receiveItems(
+    String purchaseOrderId,
+    Map<String, int> quantitiesByItemId, {
+    String? createdBy,
+  }) async {
     final order = await _getOrder(purchaseOrderId);
-    if (order == null || !canTransition(order.status, 'RECEIVED')) return;
+    if (order == null) return;
+    if (!canTransition(order.status, 'RECEIVED') &&
+        !canTransition(order.status, 'PARTIALLY_RECEIVED')) {
+      return;
+    }
     final items = await watchItems(purchaseOrderId).first;
     final stockRepo = StockRepository(_db);
+    final now = DateTime.now().toUtc().toIso8601String();
+    var allComplete = true;
+
     for (final item in items) {
-      await stockRepo.receiveStock(
-        tenantId: order.tenantId,
-        productId: item.productId,
-        quantity: item.quantity,
-        supplierId: order.supplierId,
-        createdBy: createdBy,
-      );
+      final requested = quantitiesByItemId[item.id] ?? 0;
+      final toReceive = requested.clamp(0, item.remainingQuantity);
+      if (toReceive > 0) {
+        await stockRepo.receiveStock(
+          tenantId: order.tenantId,
+          productId: item.productId,
+          quantity: toReceive,
+          supplierId: order.supplierId,
+          createdBy: createdBy,
+        );
+        await _db.execute(
+          'UPDATE purchase_order_items '
+          'SET received_quantity = COALESCE(received_quantity, 0) + ?, updated_at = ? '
+          'WHERE id = ?',
+          [toReceive, now, item.id],
+        );
+      }
+      if (item.receivedQuantity + toReceive < item.quantity) allComplete = false;
     }
-    await _setStatus(purchaseOrderId, 'RECEIVED');
+
+    await _setStatus(
+      purchaseOrderId,
+      allComplete ? 'RECEIVED' : 'PARTIALLY_RECEIVED',
+    );
   }
 
-  /// Marchandise reçue partiellement (le reste reste attendu). Les
-  /// quantités effectivement livrées ligne par ligne se saisissent via la
-  /// réception manuelle (écran Stocks) ; ce statut ne journalise donc
-  /// aucun mouvement de stock lui-même, pour éviter un double comptage
-  /// avec [markReceived] appelé plus tard sur le reliquat.
-  Future<void> markPartiallyReceived(String purchaseOrderId) =>
-      _setStatus(purchaseOrderId, 'PARTIALLY_RECEIVED');
+  /// Réceptionne intégralement le reliquat de toutes les lignes — toujours
+  /// termine la commande à RECEIVED.
+  Future<void> receiveAllRemaining(
+    String purchaseOrderId, {
+    String? createdBy,
+  }) async {
+    final items = await watchItems(purchaseOrderId).first;
+    await receiveItems(
+      purchaseOrderId,
+      {for (final item in items) item.id: item.remainingQuantity},
+      createdBy: createdBy,
+    );
+  }
 
   Future<void> cancel(String purchaseOrderId) =>
       _setStatus(purchaseOrderId, 'CANCELLED');

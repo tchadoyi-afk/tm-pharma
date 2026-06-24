@@ -73,10 +73,10 @@ void main() {
     });
 
     test(
-      'markReceived est sans effet sur une commande DRAFT (transition invalide)',
+      'receiveAllRemaining est sans effet sur une commande DRAFT (transition invalide)',
       () async {
         final orderId = await _insertOrder(testDb);
-        await repo.markReceived(orderId);
+        await repo.receiveAllRemaining(orderId);
         expect(await _statusOf(testDb, orderId), 'DRAFT');
       },
     );
@@ -94,7 +94,7 @@ void main() {
     });
   });
 
-  group('markReceived et le stock', () {
+  group('receiveAllRemaining et le stock', () {
     test(
       'crée un lot et un mouvement de réception pour chaque ligne, '
       'et passe la commande à RECEIVED',
@@ -107,7 +107,7 @@ void main() {
         await _insertItem(testDb, orderId, 'prod1', 10);
         await _insertItem(testDb, orderId, 'prod2', 5);
 
-        await repo.markReceived(orderId, createdBy: 'user1');
+        await repo.receiveAllRemaining(orderId, createdBy: 'user1');
 
         expect(await _statusOf(testDb, orderId), 'RECEIVED');
 
@@ -138,7 +138,7 @@ void main() {
         final orderId = await _insertOrder(testDb); // DRAFT
         await _insertItem(testDb, orderId, 'prod1', 10);
 
-        await repo.markReceived(orderId);
+        await repo.receiveAllRemaining(orderId);
 
         expect(await _statusOf(testDb, orderId), 'DRAFT');
         final lots = await testDb.db.getAll('SELECT * FROM lots');
@@ -147,5 +147,74 @@ void main() {
         expect(movements, isEmpty);
       },
     );
+  });
+
+  group('receiveItems (réception partielle)', () {
+    Future<String> itemIdOf(TestDb testDb, String orderId, String productId) async {
+      final rows = await testDb.db.getAll(
+        'SELECT id FROM purchase_order_items '
+        'WHERE purchase_order_id = ? AND product_id = ?',
+        [orderId, productId],
+      );
+      return rows.first['id'] as String;
+    }
+
+    test(
+      'une quantité partielle laisse la commande PARTIALLY_RECEIVED et '
+      'incrémente received_quantity',
+      () async {
+        final orderId = await _insertOrder(testDb, status: 'CONFIRMED');
+        await _insertItem(testDb, orderId, 'prod1', 10);
+        final itemId = await itemIdOf(testDb, orderId, 'prod1');
+
+        await repo.receiveItems(orderId, {itemId: 4});
+
+        expect(await _statusOf(testDb, orderId), 'PARTIALLY_RECEIVED');
+        final rows = await testDb.db.getAll(
+          'SELECT received_quantity FROM purchase_order_items WHERE id = ?',
+          [itemId],
+        );
+        expect(rows.first['received_quantity'], 4);
+        final lots = await testDb.db.getAll('SELECT quantity FROM lots');
+        expect(lots.single['quantity'], 4);
+      },
+    );
+
+    test(
+      'compléter le reliquat sur plusieurs appels passe la commande à RECEIVED',
+      () async {
+        final orderId = await _insertOrder(testDb, status: 'CONFIRMED');
+        await _insertItem(testDb, orderId, 'prod1', 10);
+        final itemId = await itemIdOf(testDb, orderId, 'prod1');
+
+        await repo.receiveItems(orderId, {itemId: 4});
+        expect(await _statusOf(testDb, orderId), 'PARTIALLY_RECEIVED');
+
+        await repo.receiveItems(orderId, {itemId: 6});
+        expect(await _statusOf(testDb, orderId), 'RECEIVED');
+
+        final lots = await testDb.db.getAll('SELECT quantity FROM lots');
+        expect(lots.length, 2);
+        expect(
+          lots.fold<int>(0, (sum, r) => sum + (r['quantity'] as int)),
+          10,
+        );
+      },
+    );
+
+    test('plafonne la quantité reçue au reliquat (pas de surréception)', () async {
+      final orderId = await _insertOrder(testDb, status: 'CONFIRMED');
+      await _insertItem(testDb, orderId, 'prod1', 10);
+      final itemId = await itemIdOf(testDb, orderId, 'prod1');
+
+      await repo.receiveItems(orderId, {itemId: 999});
+
+      expect(await _statusOf(testDb, orderId), 'RECEIVED');
+      final rows = await testDb.db.getAll(
+        'SELECT received_quantity FROM purchase_order_items WHERE id = ?',
+        [itemId],
+      );
+      expect(rows.first['received_quantity'], 10);
+    });
   });
 }

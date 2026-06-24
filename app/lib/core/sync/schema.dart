@@ -219,6 +219,7 @@ final powerSyncSchema = Schema([
       Column.text('purchase_order_id'),
       Column.text('product_id'),
       Column.integer('quantity'),
+      Column.integer('received_quantity'),
       Column.text('created_at'),
       Column.text('updated_at'),
       Column.text('deleted_at'),
