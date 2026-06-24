@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../auth/auth_repository.dart';
 import '../config/env.dart';
+import '../../features/admin/pharmacy_settings_screen.dart';
 import '../../features/admin/roles_screen.dart';
 import '../../features/assistant/assistant_screen.dart';
 import '../../features/audit/audit_screen.dart';
@@ -65,6 +66,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/admin/roles',
         name: 'admin-roles',
         builder: (context, state) => const RolesScreen(),
+      ),
+      GoRoute(
+        path: '/admin/pharmacy-settings',
+        name: 'admin-pharmacy-settings',
+        builder: (context, state) => const PharmacySettingsScreen(),
       ),
       GoRoute(
         path: '/catalog',

@@ -160,6 +160,15 @@ class HomeScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                   PermissionGate(
+                    permission: Permissions.settingsManage,
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.store_outlined),
+                      label: const Text('Paramètres de la pharmacie'),
+                      onPressed: () => context.go('/admin/pharmacy-settings'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  PermissionGate(
                     permission: Permissions.stockAdjust,
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.event_busy_outlined),
