@@ -479,6 +479,66 @@ class Strings {
       'fr': 'Scanner un code-barres',
       'en': 'Scan a barcode',
     },
+
+    // MFA.
+    'mfaChallengeTitle': {
+      'fr': 'Vérification en deux étapes',
+      'en': 'Two-factor verification',
+    },
+    'mfaChallengePrompt': {
+      'fr': 'Entrez le code à 6 chiffres de votre application d\'authentification.',
+      'en': 'Enter the 6-digit code from your authenticator app.',
+    },
+    'mfaCodeLabel': {'fr': 'Code', 'en': 'Code'},
+    'mfaVerify': {'fr': 'Vérifier', 'en': 'Verify'},
+    'mfaInvalidCode': {
+      'fr': 'Code invalide, veuillez réessayer.',
+      'en': 'Invalid code, please try again.',
+    },
+    'mfaSettingsTitle': {
+      'fr': 'Authentification à deux facteurs',
+      'en': 'Two-factor authentication',
+    },
+    'mfaEnabledStatus': {
+      'fr': 'Activée sur ce compte',
+      'en': 'Enabled on this account',
+    },
+    'mfaDisabledStatus': {
+      'fr': 'Non activée — votre compte est protégé uniquement par '
+          'votre mot de passe.',
+      'en': 'Not enabled — your account is only protected by your '
+          'password.',
+    },
+    'mfaEnrollButton': {
+      'fr': 'Activer la double authentification',
+      'en': 'Enable two-factor authentication',
+    },
+    'mfaDisableButton': {
+      'fr': 'Désactiver',
+      'en': 'Disable',
+    },
+    'mfaScanQrPrompt': {
+      'fr': 'Scannez ce code avec votre application d\'authentification '
+          '(Google Authenticator, Authy…) ou saisissez la clé manuellement :',
+      'en': 'Scan this code with your authenticator app (Google '
+          'Authenticator, Authy…) or enter the key manually:',
+    },
+    'mfaConfirmCodePrompt': {
+      'fr': 'Puis saisissez le code généré pour confirmer l\'activation :',
+      'en': 'Then enter the generated code to confirm activation:',
+    },
+    'mfaEnrollSuccess': {
+      'fr': 'Double authentification activée.',
+      'en': 'Two-factor authentication enabled.',
+    },
+    'mfaDisableSuccess': {
+      'fr': 'Double authentification désactivée.',
+      'en': 'Two-factor authentication disabled.',
+    },
+    'navMfaSettings': {
+      'fr': 'Double authentification',
+      'en': 'Two-factor authentication',
+    },
   };
 
   String _t(String key) =>
@@ -674,6 +734,22 @@ class Strings {
   String get askAQuestionHint => _t('askAQuestionHint');
 
   String get scanABarcode => _t('scanABarcode');
+
+  String get mfaChallengeTitle => _t('mfaChallengeTitle');
+  String get mfaChallengePrompt => _t('mfaChallengePrompt');
+  String get mfaCodeLabel => _t('mfaCodeLabel');
+  String get mfaVerify => _t('mfaVerify');
+  String get mfaInvalidCode => _t('mfaInvalidCode');
+  String get mfaSettingsTitle => _t('mfaSettingsTitle');
+  String get mfaEnabledStatus => _t('mfaEnabledStatus');
+  String get mfaDisabledStatus => _t('mfaDisabledStatus');
+  String get mfaEnrollButton => _t('mfaEnrollButton');
+  String get mfaDisableButton => _t('mfaDisableButton');
+  String get mfaScanQrPrompt => _t('mfaScanQrPrompt');
+  String get mfaConfirmCodePrompt => _t('mfaConfirmCodePrompt');
+  String get mfaEnrollSuccess => _t('mfaEnrollSuccess');
+  String get mfaDisableSuccess => _t('mfaDisableSuccess');
+  String get navMfaSettings => _t('navMfaSettings');
 
   // Parametrized strings (interpolation + static template).
   String insufficientStock(String productName) => _isEn

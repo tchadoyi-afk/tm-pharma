@@ -168,6 +168,12 @@ class HomeScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.shield_outlined),
+                    label: Text(s.navMfaSettings),
+                    onPressed: () => context.go('/security/mfa'),
+                  ),
+                  const SizedBox(height: 12),
                   PermissionGate(
                     permission: Permissions.stockAdjust,
                     child: OutlinedButton.icon(

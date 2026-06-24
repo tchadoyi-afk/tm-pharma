@@ -1,53 +1,50 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/auth/auth_repository.dart';
-import '../../core/config/env.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/sync/sync_service.dart';
 
-/// Écran de connexion (Sprint 3). Auth email/mot de passe via Supabase ;
-/// si un facteur MFA est vérifié sur le compte, la garde du routeur
-/// redirige ensuite vers /mfa-challenge avant d'autoriser l'accès à
-/// l'app. Branche la synchro après login (ou après la vérification MFA).
-class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+/// Saisie du code TOTP après l'email/mot de passe, quand le compte a un
+/// facteur MFA vérifié (session restée au niveau d'assurance aal1).
+class MfaChallengeScreen extends ConsumerStatefulWidget {
+  const MfaChallengeScreen({super.key});
 
   @override
-  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<MfaChallengeScreen> createState() =>
+      _MfaChallengeScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _email = TextEditingController();
-  final _password = TextEditingController();
+class _MfaChallengeScreenState extends ConsumerState<MfaChallengeScreen> {
+  final _code = TextEditingController();
   bool _loading = false;
   String? _error;
 
   @override
   void dispose() {
-    _email.dispose();
-    _password.dispose();
+    _code.dispose();
     super.dispose();
   }
 
-  Future<void> _signIn() async {
+  Future<void> _verify() async {
+    final s = Strings.of(context);
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
       final auth = ref.read(authRepositoryProvider);
-      await auth.signInWithPassword(
-        email: _email.text.trim(),
-        password: _password.text,
+      final factors = await auth.mfaListFactors();
+      final factor = factors.totp.first;
+      await auth.mfaChallengeAndVerify(
+        factorId: factor.id,
+        code: _code.text.trim(),
       );
-      if (!auth.needsMfaChallenge) {
-        await ref.read(syncServiceProvider).connect();
-      }
-      // La redirection vers '/' ou '/mfa-challenge' est gérée par la garde
-      // du routeur.
-    } catch (e) {
-      setState(() => _error = e.toString());
+      await ref.read(syncServiceProvider).connect();
+      // La redirection vers '/' est gérée par la garde du routeur.
+    } on AuthException {
+      setState(() => _error = s.mfaInvalidCode);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -69,31 +66,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Icon(
-                    Icons.local_pharmacy_outlined,
+                    Icons.shield_outlined,
                     size: 64,
                     color: theme.colorScheme.primary,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    s.appName,
+                    s.mfaChallengeTitle,
                     textAlign: TextAlign.center,
                     style: theme.textTheme.headlineSmall,
                   ),
+                  const SizedBox(height: 8),
+                  Text(
+                    s.mfaChallengePrompt,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium,
+                  ),
                   const SizedBox(height: 24),
                   TextField(
-                    controller: _email,
-                    keyboardType: TextInputType.emailAddress,
+                    controller: _code,
+                    keyboardType: TextInputType.number,
+                    autofocus: true,
                     decoration: InputDecoration(
-                      labelText: s.email,
-                      border: const OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _password,
-                    obscureText: true,
-                    decoration: InputDecoration(
-                      labelText: s.password,
+                      labelText: s.mfaCodeLabel,
                       border: const OutlineInputBorder(),
                     ),
                   ),
@@ -106,25 +101,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ],
                   const SizedBox(height: 20),
                   FilledButton(
-                    onPressed: _loading ? null : _signIn,
+                    onPressed: _loading ? null : _verify,
                     child: _loading
                         ? const SizedBox(
                             height: 20,
                             width: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : Text(s.signIn),
+                        : Text(s.mfaVerify),
                   ),
-                  if (!Env.isConfigured) ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      s.localModeLoginHint,
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ),

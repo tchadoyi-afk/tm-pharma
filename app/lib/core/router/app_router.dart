@@ -11,6 +11,8 @@ import '../../features/admin/roles_screen.dart';
 import '../../features/assistant/assistant_screen.dart';
 import '../../features/audit/audit_screen.dart';
 import '../../features/auth/login_screen.dart';
+import '../../features/auth/mfa_challenge_screen.dart';
+import '../../features/auth/mfa_settings_screen.dart';
 import '../../features/catalog/catalog_screen.dart';
 import '../../features/dashboard/dashboard_screen.dart';
 import '../../features/home/home_screen.dart';
@@ -37,7 +39,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (!Env.isConfigured) return null; // mode local : pas de garde
       final loggedIn = auth.isSignedIn;
       final atLogin = state.matchedLocation == '/login';
+      final atMfaChallenge = state.matchedLocation == '/mfa-challenge';
       if (!loggedIn && !atLogin) return '/login';
+      if (loggedIn && auth.needsMfaChallenge && !atMfaChallenge) {
+        return '/mfa-challenge';
+      }
+      if (loggedIn && !auth.needsMfaChallenge && atMfaChallenge) return '/';
       if (loggedIn && atLogin) return '/';
       return null;
     },
@@ -46,6 +53,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/login',
         name: 'login',
         builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/mfa-challenge',
+        name: 'mfa-challenge',
+        builder: (context, state) => const MfaChallengeScreen(),
+      ),
+      GoRoute(
+        path: '/security/mfa',
+        name: 'security-mfa',
+        builder: (context, state) => const MfaSettingsScreen(),
       ),
       GoRoute(
         path: '/',
