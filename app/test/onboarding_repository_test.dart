@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tm_pharma/features/catalog/products_repository.dart';
 import 'package:tm_pharma/features/onboarding/csv_import.dart';
@@ -82,6 +84,64 @@ void main() {
     test('liste vide en entrée -> aucune création', () async {
       final created = await repo.importProducts(tenantId: _tenantId, rows: const []);
       expect(created, isEmpty);
+    });
+
+    test('journalise un import_job avec compteurs corrects', () async {
+      const rows = [
+        ImportedProductRow(name: 'Paracétamol', sellingPrice: 500),
+        ImportedProductRow(
+          name: 'Déjà présent',
+          sellingPrice: 200,
+          isDuplicate: true,
+        ),
+      ];
+      await repo.importProducts(
+        tenantId: _tenantId,
+        rows: rows,
+        sourceFilename: 'catalogue.csv',
+        createdBy: 'user-1',
+      );
+
+      final jobs = await testDb.db.getAll('SELECT * FROM import_jobs');
+      expect(jobs, hasLength(1));
+      final job = jobs.single;
+      expect(job['tenant_id'], _tenantId);
+      expect(job['source_filename'], 'catalogue.csv');
+      expect(job['created_by'], 'user-1');
+      expect(job['total_rows'], 2);
+      expect(job['imported_rows'], 1);
+      expect(job['duplicate_rows'], 1);
+      expect(job['status'], 'COMPLETED');
+    });
+
+    test('journalise une import_row par ligne, avec statut et lien produit', () async {
+      const rows = [
+        ImportedProductRow(name: 'Paracétamol', sellingPrice: 500, barcode: '123'),
+        ImportedProductRow(
+          name: 'Déjà présent',
+          sellingPrice: 200,
+          isDuplicate: true,
+        ),
+      ];
+      final created = await repo.importProducts(tenantId: _tenantId, rows: rows);
+
+      final importRows = await testDb.db.getAll(
+        'SELECT * FROM import_rows ORDER BY row_number',
+      );
+      expect(importRows, hasLength(2));
+
+      final first = importRows[0];
+      expect(first['row_number'], 1);
+      expect(first['status'], 'IMPORTED');
+      expect(first['product_id'], created.single.id);
+      final firstRaw = jsonDecode(first['raw_data'] as String) as Map;
+      expect(firstRaw['name'], 'Paracétamol');
+      expect(firstRaw['barcode'], '123');
+
+      final second = importRows[1];
+      expect(second['row_number'], 2);
+      expect(second['status'], 'DUPLICATE_SKIPPED');
+      expect(second['product_id'], isNull);
     });
   });
 

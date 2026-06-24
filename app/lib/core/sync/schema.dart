@@ -213,6 +213,41 @@ final powerSyncSchema = Schema([
     ],
   ),
   Table(
+    'import_jobs',
+    [
+      Column.text('tenant_id'),
+      Column.text('source_filename'),
+      Column.integer('total_rows'),
+      Column.integer('imported_rows'),
+      Column.integer('duplicate_rows'),
+      Column.text('status'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+      Column.text('deleted_at'),
+    ],
+    indexes: [
+      Index('import_job_tenant', [IndexedColumn('tenant_id')]),
+    ],
+  ),
+  Table(
+    'import_rows',
+    [
+      Column.text('tenant_id'),
+      Column.text('import_job_id'),
+      Column.integer('row_number'),
+      Column.text('raw_data'),
+      Column.text('status'),
+      Column.text('product_id'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+      Column.text('deleted_at'),
+    ],
+    indexes: [
+      Index('import_row_job', [IndexedColumn('import_job_id')]),
+    ],
+  ),
+  Table(
     'purchase_order_items',
     [
       Column.text('tenant_id'),
