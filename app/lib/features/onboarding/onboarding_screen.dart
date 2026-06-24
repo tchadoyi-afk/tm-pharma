@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/sync/sync_service.dart';
 import 'csv_import.dart';
 import 'onboarding_repository.dart';
@@ -72,7 +73,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         );
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Inventaire initial enregistré.')),
+        SnackBar(content: Text(Strings.of(context).initialInventoryRecorded)),
       );
     }
   }
@@ -80,15 +81,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     final ready = ref.watch(syncServiceProvider).isReady;
+    final s = Strings.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Assistant d\'onboarding')),
+      appBar: AppBar(title: Text(s.onboardingTitle)),
       body: !ready
-          ? const Center(
+          ? Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
+                padding: const EdgeInsets.all(24),
                 child: Text(
-                  'Base locale non initialisée sur cette plateforme.',
+                  s.localDbNotInitialized,
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -98,35 +100,34 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               onStepContinue: _step == 0 ? null : () {},
               steps: [
                 Step(
-                  title: const Text('Import du catalogue (CSV)'),
+                  title: Text(s.stepImportCatalog),
                   isActive: _step == 0,
                   state: _imported ? StepState.complete : StepState.indexed,
                   content: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Text(
-                        'Collez le contenu d\'un fichier CSV avec les colonnes : '
-                        'nom, code_barres, prix, dci, categorie.',
-                      ),
+                      Text(s.csvImportInstructions),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _csvController,
                         maxLines: 6,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          hintText: 'nom,code_barres,prix,dci,categorie',
+                        decoration: InputDecoration(
+                          border: const OutlineInputBorder(),
+                          hintText: s.csvHint,
                         ),
                       ),
                       const SizedBox(height: 12),
                       OutlinedButton(
                         onPressed: _preview_,
-                        child: const Text('Prévisualiser'),
+                        child: Text(s.preview),
                       ),
                       if (_preview.isNotEmpty) ...[
                         const SizedBox(height: 12),
                         Text(
-                          '${_preview.length} ligne(s) — '
-                          '${_preview.where((r) => r.isDuplicate).length} doublon(s) ignoré(s)',
+                          s.csvPreviewSummary(
+                            _preview.length,
+                            _preview.where((r) => r.isDuplicate).length,
+                          ),
                         ),
                         SizedBox(
                           height: 200,
@@ -144,7 +145,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                     : const Icon(Icons.check_circle_outline),
                                 title: Text(row.name),
                                 subtitle: Text(
-                                  '${row.barcode ?? 'sans code'} · ${row.sellingPrice.toStringAsFixed(0)} XOF',
+                                  '${row.barcode ?? s.noCode} · ${row.sellingPrice.toStringAsFixed(0)} XOF',
                                 ),
                               );
                             },
@@ -153,22 +154,20 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         const SizedBox(height: 12),
                         FilledButton(
                           onPressed: _import,
-                          child: const Text('Importer'),
+                          child: Text(s.import),
                         ),
                       ],
                     ],
                   ),
                 ),
                 Step(
-                  title: const Text('Inventaire initial'),
+                  title: Text(s.stepInitialInventory),
                   isActive: _step == 1,
                   content: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        '${_importedProducts.length} produit(s) importé(s). '
-                        'Saisissez la quantité de départ pour chacun '
-                        '(0 = pas de stock pour le moment).',
+                        s.importedProductsSummary(_importedProducts.length),
                       ),
                       const SizedBox(height: 12),
                       for (final p in _importedProducts)
@@ -195,7 +194,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         onPressed: _importedProducts.isEmpty
                             ? null
                             : _finishInventory,
-                        child: const Text('Terminer l\'onboarding'),
+                        child: Text(s.finishOnboarding),
                       ),
                     ],
                   ),

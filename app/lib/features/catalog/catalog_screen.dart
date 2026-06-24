@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/rbac/permission_gate.dart';
 import '../../core/rbac/permissions.dart';
 import '../../core/sync/sync_service.dart';
@@ -34,9 +35,10 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
   @override
   Widget build(BuildContext context) {
     final ready = ref.watch(syncServiceProvider).isReady;
+    final s = Strings.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Catalogue produits')),
+      appBar: AppBar(title: Text(s.catalogTitle)),
       floatingActionButton: PermissionGate(
         permission: Permissions.productCreate,
         child: FloatingActionButton(
@@ -45,11 +47,11 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
         ),
       ),
       body: !ready
-          ? const Center(
+          ? Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
+                padding: const EdgeInsets.all(24),
                 child: Text(
-                  'Base locale non initialisée sur cette plateforme.',
+                  s.localDbNotInitialized,
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -60,10 +62,10 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                   padding: const EdgeInsets.all(16),
                   child: TextField(
                     controller: _searchController,
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.search),
-                      labelText: 'Rechercher (nom, DCI, code-barres)',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.search),
+                      labelText: s.searchProductHint,
+                      border: const OutlineInputBorder(),
                     ),
                     onChanged: (v) => setState(() => _search = v),
                   ),
@@ -76,8 +78,8 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                     builder: (context, snap) {
                       final products = snap.data ?? const [];
                       if (products.isEmpty) {
-                        return const Center(
-                          child: Text('Aucun produit pour le moment.'),
+                        return Center(
+                          child: Text(s.noProductYet),
                         );
                       }
                       return ListView.builder(
@@ -110,13 +112,14 @@ class _ProductTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = Strings.of(context);
     return ListTile(
       leading: const Icon(Icons.medication_outlined),
       title: Text(product.name),
       subtitle: Text([
         if (product.dciName != null && product.dciName != product.name)
           product.dciName!,
-        product.barcode ?? 'sans code-barres',
+        product.barcode ?? s.noCodeBarres,
         product.unit,
       ].join(' · ')),
       trailing: Row(
@@ -127,7 +130,7 @@ class _ProductTile extends StatelessWidget {
             permission: Permissions.supplierManage,
             child: IconButton(
               icon: const Icon(Icons.local_shipping_outlined),
-              tooltip: 'Fournisseur par défaut',
+              tooltip: s.defaultSupplier,
               onPressed: () => _pickDefaultSupplier(context, product),
             ),
           ),
@@ -153,20 +156,23 @@ class _ProductTile extends StatelessWidget {
     if (!context.mounted) return;
     final chosen = await showDialog<String?>(
       context: context,
-      builder: (context) => SimpleDialog(
-        title: const Text('Fournisseur par défaut'),
-        children: [
-          SimpleDialogOption(
-            onPressed: () => Navigator.pop(context, null),
-            child: const Text('Aucun'),
-          ),
-          for (final s in suppliers)
+      builder: (context) {
+        final strings = Strings.of(context);
+        return SimpleDialog(
+          title: Text(strings.defaultSupplier),
+          children: [
             SimpleDialogOption(
-              onPressed: () => Navigator.pop(context, s.id),
-              child: Text(s.name),
+              onPressed: () => Navigator.pop(context, null),
+              child: Text(strings.none),
             ),
-        ],
-      ),
+            for (final supplier in suppliers)
+              SimpleDialogOption(
+                onPressed: () => Navigator.pop(context, supplier.id),
+                child: Text(supplier.name),
+              ),
+          ],
+        );
+      },
     );
     if (!context.mounted) return;
     await container
@@ -180,26 +186,29 @@ class _ProductTile extends StatelessWidget {
     );
     final newPrice = await showDialog<double>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Modifier le prix'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(suffixText: 'XOF'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
+      builder: (context) {
+        final s = Strings.of(context);
+        return AlertDialog(
+          title: Text(s.editPrice),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(suffixText: 'XOF'),
           ),
-          FilledButton(
-            onPressed: () =>
-                Navigator.pop(context, double.tryParse(controller.text)),
-            child: const Text('Enregistrer'),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(s.cancel),
+            ),
+            FilledButton(
+              onPressed: () =>
+                  Navigator.pop(context, double.tryParse(controller.text)),
+              child: Text(s.save),
+            ),
+          ],
+        );
+      },
     );
     if (newPrice == null || !context.mounted) return;
     final repo = ProviderScope.containerOf(context).read(
@@ -212,24 +221,27 @@ class _ProductTile extends StatelessWidget {
     final controller = TextEditingController(text: product.barcode ?? '');
     final code = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Associer un code-barres'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(labelText: 'Code-barres'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
+      builder: (context) {
+        final s = Strings.of(context);
+        return AlertDialog(
+          title: Text(s.attachBarcode),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: InputDecoration(labelText: s.barcode),
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, controller.text),
-            child: const Text('Associer'),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(s.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, controller.text),
+              child: Text(s.associate),
+            ),
+          ],
+        );
+      },
     );
     if (code == null || !context.mounted) return;
     final repo = ProviderScope.containerOf(context).read(
@@ -302,6 +314,7 @@ class _AddProductSheetState extends ConsumerState<_AddProductSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final s = Strings.of(context);
     return Padding(
       padding: EdgeInsets.only(
         left: 16,
@@ -315,15 +328,15 @@ class _AddProductSheetState extends ConsumerState<_AddProductSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Nouveau produit',
+              s.newProduct,
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _refSearchController,
-              decoration: const InputDecoration(
-                labelText: 'Chercher dans le catalogue de référence (DCI)',
-                prefixIcon: Icon(Icons.search),
+              decoration: InputDecoration(
+                labelText: s.searchReferenceCatalogHint,
+                prefixIcon: const Icon(Icons.search),
               ),
               onChanged: _searchReference,
             ),
@@ -331,30 +344,30 @@ class _AddProductSheetState extends ConsumerState<_AddProductSheet> {
               ListTile(
                 dense: true,
                 title: Text(r.dciName),
-                subtitle: Text(r.barcode ?? 'sans code'),
+                subtitle: Text(r.barcode ?? s.noCode),
                 onTap: () => _pickReference(r),
               ),
             const SizedBox(height: 12),
             TextField(
               controller: _nameController,
-              decoration: const InputDecoration(labelText: 'Nom du produit'),
+              decoration: InputDecoration(labelText: s.productName),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _barcodeController,
-              decoration: const InputDecoration(labelText: 'Code-barres'),
+              decoration: InputDecoration(labelText: s.barcode),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _priceController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Prix de vente',
+              decoration: InputDecoration(
+                labelText: s.sellingPrice,
                 suffixText: 'XOF',
               ),
             ),
             const SizedBox(height: 16),
-            FilledButton(onPressed: _save, child: const Text('Enregistrer')),
+            FilledButton(onPressed: _save, child: Text(s.save)),
           ],
         ),
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/sync/sync_service.dart';
 import '../catalog/product_model.dart';
 import '../catalog/products_repository.dart';
@@ -17,20 +18,21 @@ class PromotionsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ready = ref.watch(syncServiceProvider).isReady;
+    final s = Strings.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Promotions')),
+      appBar: AppBar(title: Text(s.promotionsTitle)),
       floatingActionButton: FloatingActionButton.extended(
         icon: const Icon(Icons.local_offer_outlined),
-        label: const Text('Nouvelle promotion'),
+        label: Text(s.newPromotion),
         onPressed: () => _openCreateSheet(context),
       ),
       body: !ready
-          ? const Center(
+          ? Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
+                padding: const EdgeInsets.all(24),
                 child: Text(
-                  'Base locale non initialisée sur cette plateforme.',
+                  s.localDbNotInitialized,
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -40,7 +42,7 @@ class PromotionsScreen extends ConsumerWidget {
               builder: (context, snap) {
                 final promos = snap.data ?? const [];
                 if (promos.isEmpty) {
-                  return const Center(child: Text('Aucune promotion.'));
+                  return Center(child: Text(s.noPromotion));
                 }
                 final now = DateTime.now();
                 return ListView.builder(
@@ -56,10 +58,12 @@ class PromotionsScreen extends ConsumerWidget {
                       ),
                       title: Text('-${p.discountPercent.toStringAsFixed(0)} %'),
                       subtitle: Text(
-                        'Du ${p.startsAt.toIso8601String().substring(0, 10)} '
-                        'au ${p.endsAt.toIso8601String().substring(0, 10)}',
+                        s.promotionDateRange(
+                          p.startsAt.toIso8601String().substring(0, 10),
+                          p.endsAt.toIso8601String().substring(0, 10),
+                        ),
                       ),
-                      trailing: p.isActiveAt(now) ? const Text('Active') : null,
+                      trailing: p.isActiveAt(now) ? Text(s.active) : null,
                     );
                   },
                 );
@@ -127,6 +131,7 @@ class _CreatePromotionSheetState extends ConsumerState<_CreatePromotionSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final s = Strings.of(context);
     return Padding(
       padding: EdgeInsets.only(
         left: 16,
@@ -140,15 +145,15 @@ class _CreatePromotionSheetState extends ConsumerState<_CreatePromotionSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Nouvelle promotion',
+              s.newPromotion,
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _searchController,
-              decoration: const InputDecoration(
-                labelText: 'Produit (nom, DCI, code-barres)',
-                prefixIcon: Icon(Icons.search),
+              decoration: InputDecoration(
+                labelText: s.productSearchHint,
+                prefixIcon: const Icon(Icons.search),
               ),
               onChanged: _searchProducts,
             ),
@@ -162,16 +167,16 @@ class _CreatePromotionSheetState extends ConsumerState<_CreatePromotionSheet> {
             if (_selectedProduct != null)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text('Sélectionné : ${_selectedProduct!.name}'),
+                child: Text(s.selectedProduct(_selectedProduct!.name)),
               ),
             const SizedBox(height: 12),
             TextField(
               controller: _discountController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Remise (%)'),
+              decoration: InputDecoration(labelText: s.discountPercent),
             ),
             const SizedBox(height: 16),
-            FilledButton(onPressed: _save, child: const Text('Créer')),
+            FilledButton(onPressed: _save, child: Text(s.create)),
           ],
         ),
       ),

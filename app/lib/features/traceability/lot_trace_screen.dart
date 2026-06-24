@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/i18n/strings.dart';
 import '../stock/stock_repository.dart';
 import 'lot_trace_models.dart';
 
@@ -19,8 +20,9 @@ class LotTraceScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final repo = ref.read(stockRepositoryProvider);
+    final s = Strings.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text('Traçabilité — $lotLabel')),
+      appBar: AppBar(title: Text(s.tracabilityTitle(lotLabel))),
       body: FutureBuilder<List<LotTraceEvent>>(
         future: Future.wait([
           repo.getLotMovements(lotId),
@@ -37,7 +39,7 @@ class LotTraceScreen extends ConsumerWidget {
             return const Center(child: CircularProgressIndicator());
           }
           if (events.isEmpty) {
-            return const Center(child: Text('Aucun mouvement enregistré.'));
+            return Center(child: Text(s.noMovementRecorded));
           }
           return ListView.builder(
             itemCount: events.length,

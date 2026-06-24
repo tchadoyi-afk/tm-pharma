@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/rbac/permission_gate.dart';
 import '../../core/rbac/permissions.dart';
 import '../../core/scanning/barcode_scanner_sheet.dart';
@@ -22,23 +23,24 @@ class StockScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ready = ref.watch(syncServiceProvider).isReady;
+    final s = Strings.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Stocks')),
+      appBar: AppBar(title: Text(s.stockTitle)),
       floatingActionButton: PermissionGate(
         permission: Permissions.stockReceive,
         child: FloatingActionButton.extended(
           icon: const Icon(Icons.move_to_inbox_outlined),
-          label: const Text('Réceptionner'),
+          label: Text(s.receiveStock),
           onPressed: () => _openReceiveSheet(context),
         ),
       ),
       body: !ready
-          ? const Center(
+          ? Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
+                padding: const EdgeInsets.all(24),
                 child: Text(
-                  'Base locale non initialisée sur cette plateforme.',
+                  s.localDbNotInitialized,
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -48,7 +50,7 @@ class StockScreen extends ConsumerWidget {
               builder: (context, snap) {
                 final lines = snap.data ?? const [];
                 if (lines.isEmpty) {
-                  return const Center(child: Text('Aucun produit en stock.'));
+                  return Center(child: Text(s.noProductInStock));
                 }
                 return ListView.builder(
                   itemCount: lines.length,
@@ -74,6 +76,7 @@ class _StockTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = Strings.of(context);
     return ListTile(
       leading: Icon(
         line.isLow ? Icons.warning_amber_outlined : Icons.inventory_2_outlined,
@@ -81,7 +84,7 @@ class _StockTile extends StatelessWidget {
       ),
       title: Text(line.productName),
       subtitle: line.isLow
-          ? Text('Seuil d\'alerte : ${line.lowStockThreshold}')
+          ? Text(s.alertThreshold(line.lowStockThreshold))
           : null,
       trailing: Text(
         '${line.quantity}',
@@ -172,6 +175,7 @@ class _ReceiveStockSheetState extends ConsumerState<_ReceiveStockSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final s = Strings.of(context);
     return Padding(
       padding: EdgeInsets.only(
         left: 16,
@@ -185,7 +189,7 @@ class _ReceiveStockSheetState extends ConsumerState<_ReceiveStockSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Réceptionner une commande',
+              s.receiveOrderSheetTitle,
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
@@ -194,9 +198,9 @@ class _ReceiveStockSheetState extends ConsumerState<_ReceiveStockSheet> {
                 Expanded(
                   child: TextField(
                     controller: _gs1Controller,
-                    decoration: const InputDecoration(
-                      labelText: 'Scanner / coller le code GS1-128',
-                      prefixIcon: Icon(Icons.qr_code_scanner),
+                    decoration: InputDecoration(
+                      labelText: s.scanOrPasteGs1,
+                      prefixIcon: const Icon(Icons.qr_code_scanner),
                     ),
                     onChanged: _onGs1Scanned,
                   ),
@@ -204,7 +208,7 @@ class _ReceiveStockSheetState extends ConsumerState<_ReceiveStockSheet> {
                 const SizedBox(width: 8),
                 IconButton.filledTonal(
                   icon: const Icon(Icons.camera_alt_outlined),
-                  tooltip: 'Scanner avec la caméra',
+                  tooltip: s.scanWithCamera,
                   onPressed: () async {
                     final code = await showBarcodeScannerSheet(context);
                     if (code == null) return;
@@ -217,9 +221,9 @@ class _ReceiveStockSheetState extends ConsumerState<_ReceiveStockSheet> {
             const SizedBox(height: 12),
             TextField(
               controller: _searchController,
-              decoration: const InputDecoration(
-                labelText: 'Produit (nom, DCI, code-barres)',
-                prefixIcon: Icon(Icons.search),
+              decoration: InputDecoration(
+                labelText: s.productSearchHint,
+                prefixIcon: const Icon(Icons.search),
               ),
               onChanged: _searchProducts,
             ),
@@ -228,34 +232,34 @@ class _ReceiveStockSheetState extends ConsumerState<_ReceiveStockSheet> {
                 dense: true,
                 selected: p.id == _selectedProduct?.id,
                 title: Text(p.name),
-                subtitle: Text(p.barcode ?? 'sans code-barres'),
+                subtitle: Text(p.barcode ?? s.noCodeBarres),
                 onTap: () => setState(() => _selectedProduct = p),
               ),
             if (_selectedProduct != null)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text('Sélectionné : ${_selectedProduct!.name}'),
+                child: Text(s.selectedProduct(_selectedProduct!.name)),
               ),
             const SizedBox(height: 12),
             TextField(
               controller: _lotController,
-              decoration: const InputDecoration(labelText: 'Numéro de lot'),
+              decoration: InputDecoration(labelText: s.lotNumber),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _expirationController,
-              decoration: const InputDecoration(
-                labelText: 'Date de péremption (AAAA-MM-JJ)',
+              decoration: InputDecoration(
+                labelText: s.expirationDateHint,
               ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _quantityController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Quantité reçue'),
+              decoration: InputDecoration(labelText: s.quantityReceived),
             ),
             const SizedBox(height: 16),
-            FilledButton(onPressed: _save, child: const Text('Enregistrer')),
+            FilledButton(onPressed: _save, child: Text(s.save)),
           ],
         ),
       ),

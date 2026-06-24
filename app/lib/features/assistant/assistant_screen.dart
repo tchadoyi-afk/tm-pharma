@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/config/env.dart';
+import '../../core/i18n/strings.dart';
 import 'assistant_message.dart';
 import 'assistant_repository.dart';
 
@@ -47,12 +48,10 @@ class _AssistantScreenState extends ConsumerState<AssistantScreen> {
       });
     } on AssistantNotConfiguredException {
       setState(() {
-        _error =
-            'Assistant non configuré : le backend IA en ligne n\'est pas '
-            'encore provisionné pour cette installation.';
+        _error = Strings.of(context).assistantNotConfigured;
       });
     } catch (e) {
-      setState(() => _error = 'Erreur : $e');
+      setState(() => _error = Strings.of(context).errorWith(e));
     } finally {
       setState(() => _sending = false);
     }
@@ -60,8 +59,9 @@ class _AssistantScreenState extends ConsumerState<AssistantScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = Strings.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Assistant')),
+      appBar: AppBar(title: Text(s.assistantTitle)),
       body: Column(
         children: [
           if (!Env.isAssistantConfigured)
@@ -70,8 +70,7 @@ class _AssistantScreenState extends ConsumerState<AssistantScreen> {
               color: Theme.of(context).colorScheme.errorContainer,
               padding: const EdgeInsets.all(12),
               child: Text(
-                'Assistant non configuré sur cette installation (backend IA '
-                'en ligne pas encore provisionné).',
+                s.assistantNotConfiguredBanner,
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onErrorContainer,
                 ),
@@ -118,9 +117,9 @@ class _AssistantScreenState extends ConsumerState<AssistantScreen> {
                   Expanded(
                     child: TextField(
                       controller: _controller,
-                      decoration: const InputDecoration(
-                        hintText: 'Poser une question…',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        hintText: s.askAQuestionHint,
+                        border: const OutlineInputBorder(),
                       ),
                       onSubmitted: (_) => _send(),
                     ),

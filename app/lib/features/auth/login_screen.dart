@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/auth/auth_repository.dart';
 import '../../core/config/env.dart';
+import '../../core/i18n/strings.dart';
 import '../../core/sync/sync_service.dart';
 
 /// Écran de connexion (Sprint 3). Auth email/mot de passe via Supabase ;
@@ -51,6 +52,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final s = Strings.of(context);
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
@@ -69,7 +71,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'TM Pharma',
+                    s.appName,
                     textAlign: TextAlign.center,
                     style: theme.textTheme.headlineSmall,
                   ),
@@ -77,18 +79,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   TextField(
                     controller: _email,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: s.email,
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: _password,
                     obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Mot de passe',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: s.password,
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                   if (_error != null) ...[
@@ -107,13 +109,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             width: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text('Se connecter'),
+                        : Text(s.signIn),
                   ),
                   if (!Env.isConfigured) ...[
                     const SizedBox(height: 16),
                     Text(
-                      'Mode local : configurez Supabase pour activer la '
-                      'connexion (voir app/.env.example).',
+                      s.localModeLoginHint,
                       textAlign: TextAlign.center,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,

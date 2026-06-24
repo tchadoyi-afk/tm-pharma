@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/rbac/permission_gate.dart';
 import '../../core/rbac/permissions.dart';
 import '../../core/rbac/rbac_providers.dart';
@@ -10,11 +11,12 @@ import '../stock/stock_repository.dart';
 import '../traceability/lot_trace_screen.dart';
 import 'expiry_alerts.dart';
 
-const _exitTypeLabels = {
-  'DONATION': 'Don',
-  'SUPPLIER_RETURN': 'Retour fournisseur',
-  'TRANSFER': 'Transfert vers une autre pharmacie',
-  'SCRAP': 'Rebut (périmé / abîmé)',
+String _exitTypeLabel(Strings s, String type) => switch (type) {
+  'DONATION' => s.exitReasonDonation,
+  'SUPPLIER_RETURN' => s.exitReasonSupplierReturn,
+  'TRANSFER' => s.exitReasonTransfer,
+  'SCRAP' => s.exitReasonScrap,
+  _ => type,
 };
 
 /// Cycle de vie & péremptions (Sprint 9) : alertes J-90/J-30/J-7 sur les
@@ -28,23 +30,24 @@ class LifecycleScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ready = ref.watch(syncServiceProvider).isReady;
     final today = DateTime.now();
+    final s = Strings.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Péremptions & sorties')),
+      appBar: AppBar(title: Text(s.lifecycleTitle)),
       floatingActionButton: PermissionGate(
         permission: Permissions.stockAdjust,
         child: FloatingActionButton.extended(
           icon: const Icon(Icons.outbox_outlined),
-          label: const Text('Sortie de stock'),
+          label: Text(s.stockExit),
           onPressed: () => _openExitSheet(context),
         ),
       ),
       body: !ready
-          ? const Center(
+          ? Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
+                padding: const EdgeInsets.all(24),
                 child: Text(
-                  'Base locale non initialisée sur cette plateforme.',
+                  s.localDbNotInitialized,
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -66,8 +69,8 @@ class LifecycleScreen extends ConsumerWidget {
                     return da.compareTo(db);
                   });
                 if (alerts.isEmpty) {
-                  return const Center(
-                    child: Text('Aucun lot proche de la péremption.'),
+                  return Center(
+                    child: Text(s.noLotNearExpiry),
                   );
                 }
                 return ListView.builder(
@@ -87,15 +90,17 @@ class LifecycleScreen extends ConsumerWidget {
                         'péremption ${row.lot.expirationDate!.toIso8601String().substring(0, 10)} '
                         '· qté ${row.lot.quantity}',
                       ),
-                      trailing: Text(_alertLabel(level)),
+                      trailing: Text(_alertLabel(s, level)),
                       onTap: !canTrace
                           ? null
                           : () => Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (_) => LotTraceScreen(
                                   lotId: row.lot.id,
-                                  lotLabel:
-                                      '${row.productName} (lot ${row.lot.lotNumber ?? '—'})',
+                                  lotLabel: s.lotTraceLabel(
+                                    row.productName,
+                                    row.lot.lotNumber ?? '—',
+                                  ),
                                 ),
                               ),
                             ),
@@ -122,16 +127,16 @@ class LifecycleScreen extends ConsumerWidget {
     }
   }
 
-  String _alertLabel(ExpiryAlertLevel level) {
+  String _alertLabel(Strings s, ExpiryAlertLevel level) {
     switch (level) {
       case ExpiryAlertLevel.expired:
-        return 'Expiré';
+        return s.alertExpired;
       case ExpiryAlertLevel.j7:
-        return 'J-7';
+        return s.alertJ7;
       case ExpiryAlertLevel.j30:
-        return 'J-30';
+        return s.alertJ30;
       case ExpiryAlertLevel.j90:
-        return 'J-90';
+        return s.alertJ90;
       case ExpiryAlertLevel.none:
         return '';
     }
@@ -188,6 +193,7 @@ class _StockExitSheetState extends ConsumerState<_StockExitSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final s = Strings.of(context);
     return Padding(
       padding: EdgeInsets.only(
         left: 16,
@@ -201,16 +207,19 @@ class _StockExitSheetState extends ConsumerState<_StockExitSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Sortie de stock (hors vente)',
+              s.stockExitSheetTitle,
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
               initialValue: _type,
-              decoration: const InputDecoration(labelText: 'Type de sortie'),
-              items: _exitTypeLabels.entries
+              decoration: InputDecoration(labelText: s.exitType),
+              items: ['DONATION', 'SUPPLIER_RETURN', 'TRANSFER', 'SCRAP']
                   .map(
-                    (e) => DropdownMenuItem(value: e.key, child: Text(e.value)),
+                    (type) => DropdownMenuItem(
+                      value: type,
+                      child: Text(_exitTypeLabel(s, type)),
+                    ),
                   )
                   .toList(),
               onChanged: (v) => setState(() => _type = v ?? _type),
@@ -222,12 +231,14 @@ class _StockExitSheetState extends ConsumerState<_StockExitSheet> {
                 final lots = snap.data ?? const [];
                 return DropdownButtonFormField<({Lot lot, String productName})>(
                   initialValue: _selectedLot,
-                  decoration: const InputDecoration(labelText: 'Lot'),
+                  decoration: InputDecoration(labelText: s.lot),
                   items: lots
                       .map(
                         (r) => DropdownMenuItem(
                           value: r,
-                          child: Text('${r.productName} (qté ${r.lot.quantity})'),
+                          child: Text(
+                            s.stockLotDropdownLabel(r.productName, r.lot.quantity),
+                          ),
                         ),
                       )
                       .toList(),
@@ -239,15 +250,15 @@ class _StockExitSheetState extends ConsumerState<_StockExitSheet> {
             TextField(
               controller: _quantityController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Quantité'),
+              decoration: InputDecoration(labelText: s.quantity),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _reasonController,
-              decoration: const InputDecoration(labelText: 'Motif (optionnel)'),
+              decoration: InputDecoration(labelText: s.reasonOptional),
             ),
             const SizedBox(height: 16),
-            FilledButton(onPressed: _save, child: const Text('Enregistrer')),
+            FilledButton(onPressed: _save, child: Text(s.save)),
           ],
         ),
       ),

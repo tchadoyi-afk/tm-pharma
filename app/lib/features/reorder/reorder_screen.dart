@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/rbac/permission_gate.dart';
 import '../../core/rbac/permissions.dart';
 import '../../core/sync/sync_service.dart';
@@ -45,12 +46,13 @@ class _ReorderScreenState extends ConsumerState<ReorderScreen> {
     }
     setState(() => _selected.clear());
     if (mounted) {
+      final s = Strings.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             bySupplier.length > 1
-                ? '${bySupplier.length} bons de commande créés (1 par fournisseur).'
-                : 'Bon de commande créé.',
+                ? s.purchaseOrdersCreatedSummary(bySupplier.length)
+                : s.purchaseOrderCreated,
           ),
         ),
       );
@@ -60,15 +62,16 @@ class _ReorderScreenState extends ConsumerState<ReorderScreen> {
   @override
   Widget build(BuildContext context) {
     final ready = ref.watch(syncServiceProvider).isReady;
+    final strings = Strings.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Suggestions de réappro')),
+      appBar: AppBar(title: Text(strings.reorderTitle)),
       body: !ready
-          ? const Center(
+          ? Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
+                padding: const EdgeInsets.all(24),
                 child: Text(
-                  'Base locale non initialisée sur cette plateforme.',
+                  strings.localDbNotInitialized,
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -98,8 +101,8 @@ class _ReorderScreenState extends ConsumerState<ReorderScreen> {
                           .toList(),
                     );
                     if (suggestions.isEmpty) {
-                      return const Center(
-                        child: Text('Aucune suggestion : stocks au-dessus du seuil.'),
+                      return Center(
+                        child: Text(strings.noSuggestion),
                       );
                     }
                     return Column(
@@ -120,9 +123,11 @@ class _ReorderScreenState extends ConsumerState<ReorderScreen> {
                                 }),
                                 title: Text(s.productName),
                                 subtitle: Text(
-                                  'Stock actuel : ${s.currentQuantity} · '
-                                  'Suggéré : ${s.suggestedQuantity}'
-                                  '${s.supplierName != null ? ' · ${s.supplierName}' : ''}',
+                                  strings.reorderSubtitle(
+                                    s.currentQuantity,
+                                    s.suggestedQuantity,
+                                    s.supplierName,
+                                  ),
                                 ),
                               );
                             },
@@ -135,7 +140,7 @@ class _ReorderScreenState extends ConsumerState<ReorderScreen> {
                               permission: Permissions.purchaseOrder,
                               child: FilledButton.icon(
                                 icon: const Icon(Icons.shopping_cart_checkout),
-                                label: const Text('Créer le(s) bon(s) de commande'),
+                                label: Text(strings.createPurchaseOrders),
                                 onPressed: _selected.isEmpty
                                     ? null
                                     : () => _createOrders(suggestions),

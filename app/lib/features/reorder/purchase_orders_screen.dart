@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/rbac/permission_gate.dart';
 import '../../core/rbac/permissions.dart';
 import '../../core/sync/sync_service.dart';
@@ -10,13 +11,14 @@ import 'purchase_order_model.dart';
 import 'purchase_order_repository.dart';
 import 'purchase_order_status.dart';
 
-const _statusLabels = {
-  'DRAFT': 'Brouillon',
-  'SENT': 'Envoyée',
-  'CONFIRMED': 'Confirmée par le fournisseur',
-  'PARTIALLY_RECEIVED': 'Reçue partiellement',
-  'RECEIVED': 'Reçue',
-  'CANCELLED': 'Annulée',
+String _statusLabel(Strings s, String status) => switch (status) {
+  'DRAFT' => s.statusDraft,
+  'SENT' => s.statusSent,
+  'CONFIRMED' => s.statusConfirmed,
+  'PARTIALLY_RECEIVED' => s.statusPartiallyReceived,
+  'RECEIVED' => s.statusReceived,
+  'CANCELLED' => s.statusCancelled,
+  _ => status,
 };
 
 /// Suivi des bons de commande (portail fournisseurs, MVP) : liste des
@@ -30,15 +32,16 @@ class PurchaseOrdersScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ready = ref.watch(syncServiceProvider).isReady;
+    final s = Strings.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Bons de commande')),
+      appBar: AppBar(title: Text(s.purchaseOrdersTitle)),
       body: !ready
-          ? const Center(
+          ? Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
+                padding: const EdgeInsets.all(24),
                 child: Text(
-                  'Base locale non initialisée sur cette plateforme.',
+                  s.localDbNotInitialized,
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -48,8 +51,8 @@ class PurchaseOrdersScreen extends ConsumerWidget {
               builder: (context, snap) {
                 final orders = snap.data ?? const [];
                 if (orders.isEmpty) {
-                  return const Center(
-                    child: Text('Aucun bon de commande pour le moment.'),
+                  return Center(
+                    child: Text(s.noPurchaseOrderYet),
                   );
                 }
                 return StreamBuilder<List<Supplier>>(
@@ -103,11 +106,12 @@ class _PurchaseOrderTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final repo = ref.read(purchaseOrderRepositoryProvider);
+    final s = Strings.of(context);
     return ExpansionTile(
       leading: const Icon(Icons.receipt_long_outlined),
-      title: Text(supplierName ?? 'Fournisseur non renseigné'),
+      title: Text(supplierName ?? s.supplierNotSet),
       subtitle: Text(
-        '${_statusLabels[order.status] ?? order.status} · '
+        '${_statusLabel(s, order.status)} · '
         '${order.createdAt.toIso8601String().substring(0, 10)}',
       ),
       children: [
@@ -115,6 +119,7 @@ class _PurchaseOrderTile extends ConsumerWidget {
           stream: repo.watchItems(order.id),
           builder: (context, snap) {
             final items = snap.data ?? const [];
+            final s = Strings.of(context);
             return Column(
               children: [
                 for (final item in items)
@@ -122,12 +127,15 @@ class _PurchaseOrderTile extends ConsumerWidget {
                     dense: true,
                     title: Text(
                       productNames[item.productId] ??
-                          'Produit ${item.productId.substring(0, 8)}',
+                          s.productFallback(item.productId.substring(0, 8)),
                     ),
                     trailing: Text(
                       item.receivedQuantity == 0
-                          ? 'qté ${item.quantity}'
-                          : 'qté ${item.quantity} (reçu ${item.receivedQuantity})',
+                          ? s.qtyLine(item.quantity)
+                          : s.qtyLineReceived(
+                              item.quantity,
+                              item.receivedQuantity,
+                            ),
                     ),
                   ),
                 PermissionGate(
@@ -152,10 +160,12 @@ class _PurchaseOrderTile extends ConsumerWidget {
     );
   }
 
-  static const _actionLabels = {
-    'SENT': ('Valider et envoyer', Icons.send_outlined),
-    'CANCELLED': ('Annuler', Icons.close),
-  };
+  static (String, IconData)? _actionLabel(Strings s, String status) =>
+      switch (status) {
+        'SENT' => (s.validateAndSend, Icons.send_outlined),
+        'CANCELLED' => (s.cancel, Icons.close),
+        _ => null,
+      };
 
   static final Map<String, Future<void> Function(PurchaseOrderRepository, String)>
   _actionCallbacks = {
@@ -178,15 +188,16 @@ class _PurchaseOrderTile extends ConsumerWidget {
     Map<String, String> productNames,
   ) {
     final next = allowedNextStatuses(order.status);
+    final s = Strings.of(context);
     return [
       if (next.contains('RECEIVED') || next.contains('PARTIALLY_RECEIVED'))
         FilledButton.icon(
           icon: const Icon(Icons.inventory_outlined),
-          label: const Text('Réceptionner'),
+          label: Text(s.receiveOrder),
           onPressed: () => _openReceiveDialog(context, repo, order.id, items, productNames),
         ),
       for (final status in next)
-        if (_actionLabels[status] case (final label, final icon))
+        if (_actionLabel(s, status) case (final label, final icon))
           status == 'SENT'
               ? FilledButton.icon(
                   icon: Icon(icon),
@@ -266,8 +277,9 @@ class _ReceiveDialogState extends State<_ReceiveDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final s = Strings.of(context);
     return AlertDialog(
-      title: const Text('Réceptionner la commande'),
+      title: Text(s.receiveTheOrder),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -280,8 +292,8 @@ class _ReceiveDialogState extends State<_ReceiveDialog> {
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
                     labelText: widget.productNames[item.productId] ??
-                        'Produit ${item.productId.substring(0, 8)}',
-                    helperText: 'Reliquat attendu : ${item.remainingQuantity}',
+                        s.productFallback(item.productId.substring(0, 8)),
+                    helperText: s.expectedRemaining(item.remainingQuantity),
                   ),
                 ),
               ),
@@ -291,9 +303,9 @@ class _ReceiveDialogState extends State<_ReceiveDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Annuler'),
+          child: Text(s.cancel),
         ),
-        FilledButton(onPressed: _confirm, child: const Text('Valider')),
+        FilledButton(onPressed: _confirm, child: Text(s.validate)),
       ],
     );
   }

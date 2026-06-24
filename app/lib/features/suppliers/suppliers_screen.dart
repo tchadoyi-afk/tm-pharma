@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/rbac/permission_gate.dart';
 import '../../core/rbac/permissions.dart';
 import '../../core/sync/sync_service.dart';
@@ -19,9 +20,10 @@ class SuppliersScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ready = ref.watch(syncServiceProvider).isReady;
+    final s = Strings.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Fournisseurs')),
+      appBar: AppBar(title: Text(s.suppliersTitle)),
       floatingActionButton: PermissionGate(
         permission: Permissions.supplierManage,
         child: FloatingActionButton(
@@ -30,11 +32,11 @@ class SuppliersScreen extends ConsumerWidget {
         ),
       ),
       body: !ready
-          ? const Center(
+          ? Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
+                padding: const EdgeInsets.all(24),
                 child: Text(
-                  'Base locale non initialisée sur cette plateforme.',
+                  s.localDbNotInitialized,
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -44,8 +46,8 @@ class SuppliersScreen extends ConsumerWidget {
               builder: (context, snap) {
                 final suppliers = snap.data ?? const [];
                 if (suppliers.isEmpty) {
-                  return const Center(
-                    child: Text('Aucun fournisseur pour le moment.'),
+                  return Center(
+                    child: Text(s.noSupplierYet),
                   );
                 }
                 return ListView.builder(
@@ -59,7 +61,7 @@ class SuppliersScreen extends ConsumerWidget {
                         if (supplier.phone != null) supplier.phone!,
                         if (supplier.email != null) supplier.email!,
                         if (supplier.leadTimeDays > 0)
-                          '${supplier.leadTimeDays} j de livraison',
+                          s.leadTimeDaysLabel(supplier.leadTimeDays),
                       ].join(' · ')),
                       trailing: PermissionGate(
                         permission: Permissions.supplierManage,
@@ -150,6 +152,7 @@ class _SupplierSheetState extends ConsumerState<_SupplierSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final s = Strings.of(context);
     return Padding(
       padding: EdgeInsets.only(
         left: 16,
@@ -163,37 +166,37 @@ class _SupplierSheetState extends ConsumerState<_SupplierSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              widget.supplier == null ? 'Nouveau fournisseur' : 'Modifier le fournisseur',
+              widget.supplier == null ? s.newSupplier : s.editSupplier,
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _nameController,
-              decoration: const InputDecoration(labelText: 'Nom'),
+              decoration: InputDecoration(labelText: s.name),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _phoneController,
               keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(labelText: 'Téléphone'),
+              decoration: InputDecoration(labelText: s.phone),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(labelText: 'Email'),
+              decoration: InputDecoration(labelText: s.email),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _leadTimeController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Délai de livraison habituel',
-                suffixText: 'jours',
+              decoration: InputDecoration(
+                labelText: s.usualLeadTime,
+                suffixText: s.daysSuffix,
               ),
             ),
             const SizedBox(height: 16),
-            FilledButton(onPressed: _save, child: const Text('Enregistrer')),
+            FilledButton(onPressed: _save, child: Text(s.save)),
           ],
         ),
       ),

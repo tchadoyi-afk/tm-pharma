@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import '../../core/i18n/strings.dart';
 import 'pharmacy_settings_repository.dart';
 
 /// Écran de paramétrage de la pharmacie (raison sociale, devise, préfixe de
@@ -67,7 +68,7 @@ class _PharmacySettingsScreenState
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Réglages enregistrés.')),
+          SnackBar(content: Text(Strings.of(context).settingsSaved)),
         );
       }
     } finally {
@@ -80,12 +81,13 @@ class _PharmacySettingsScreenState
     final settingsAsync = ref.watch(
       pharmacySettingsStreamProvider(PharmacySettingsScreen.demoTenantId),
     );
+    final s = Strings.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Paramètres de la pharmacie')),
+      appBar: AppBar(title: Text(s.pharmacySettingsTitle)),
       body: settingsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Erreur : $e')),
+        error: (e, _) => Center(child: Text(s.errorWith(e))),
         data: (settings) {
           _loadIfNeeded(settings);
           return ListView(
@@ -109,31 +111,31 @@ class _PharmacySettingsScreenState
               Center(
                 child: TextButton(
                   onPressed: _pickLogo,
-                  child: const Text('Changer le logo'),
+                  child: Text(s.changeLogo),
                 ),
               ),
               const SizedBox(height: 24),
               TextField(
                 controller: _legalName,
-                decoration: const InputDecoration(
-                  labelText: 'Raison sociale',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: s.legalName,
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _currency,
-                decoration: const InputDecoration(
-                  labelText: 'Devise (ex. XOF, XAF)',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: s.currencyHint,
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _invoicePrefix,
-                decoration: const InputDecoration(
-                  labelText: 'Préfixe de numérotation des factures',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: s.invoicePrefixLabel,
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 24),
@@ -145,7 +147,7 @@ class _PharmacySettingsScreenState
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Enregistrer'),
+                    : Text(s.save),
               ),
             ],
           );

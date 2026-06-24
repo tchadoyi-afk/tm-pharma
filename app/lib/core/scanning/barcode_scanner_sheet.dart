@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../i18n/strings.dart';
+
 /// Ouvre la caméra pour scanner un code-barres (EAN-13/Code-128/GS1-128) et
 /// retourne la valeur brute décodée, ou `null` si l'utilisateur annule.
 /// Sert de complément au scan douchette (qui fonctionne déjà via la saisie
@@ -54,7 +56,7 @@ class _BarcodeScannerSheetState extends State<_BarcodeScannerSheet> {
       child: Column(
         children: [
           AppBar(
-            title: const Text('Scanner un code-barres'),
+            title: Text(Strings.of(context).scanABarcode),
             automaticallyImplyLeading: false,
             actions: [
               IconButton(

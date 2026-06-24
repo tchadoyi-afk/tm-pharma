@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:printing/printing.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/rbac/permission_gate.dart';
 import '../../core/rbac/permissions.dart';
 import '../../core/scanning/barcode_scanner_sheet.dart';
@@ -80,7 +81,9 @@ class _PosScreenState extends ConsumerState<PosScreen> {
     } on InsufficientStockException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Stock insuffisant : ${e.productName}')),
+          SnackBar(
+            content: Text(Strings.of(context).insufficientStock(e.productName)),
+          ),
         );
       }
     }
@@ -89,30 +92,33 @@ class _PosScreenState extends ConsumerState<PosScreen> {
   Future<void> _showPrintOptions(InvoiceData invoice) async {
     await showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Vente encaissée — ${invoice.invoiceNumber}'),
-        content: const Text('Imprimer le ticket ou la facture ?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Fermer'),
-          ),
-          TextButton(
-            onPressed: () async {
-              final bytes = await buildThermalTicketPdf(invoice);
-              await Printing.layoutPdf(onLayout: (_) async => bytes);
-            },
-            child: const Text('Ticket thermique'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              final bytes = await buildInvoicePdf(invoice);
-              await Printing.layoutPdf(onLayout: (_) async => bytes);
-            },
-            child: const Text('Facture PDF'),
-          ),
-        ],
-      ),
+      builder: (context) {
+        final s = Strings.of(context);
+        return AlertDialog(
+          title: Text(s.saleRecordedTitle(invoice.invoiceNumber)),
+          content: Text(s.printTicketOrInvoice),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(s.close),
+            ),
+            TextButton(
+              onPressed: () async {
+                final bytes = await buildThermalTicketPdf(invoice, s);
+                await Printing.layoutPdf(onLayout: (_) async => bytes);
+              },
+              child: Text(s.thermalTicket),
+            ),
+            FilledButton(
+              onPressed: () async {
+                final bytes = await buildInvoicePdf(invoice, s);
+                await Printing.layoutPdf(onLayout: (_) async => bytes);
+              },
+              child: Text(s.invoicePdf),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -145,45 +151,49 @@ class _PosScreenState extends ConsumerState<PosScreen> {
   Future<bool?> _showFraudSignalsDialog(List<FraudSignal> signals) {
     return showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Anomalies détectées'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            for (final s in signals)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Text('• ${s.message}'),
-              ),
+      builder: (context) {
+        final s = Strings.of(context);
+        return AlertDialog(
+          title: Text(s.anomaliesDetected),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final signal in signals)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text('• ${signal.message}'),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(s.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(s.closeAnyway),
+            ),
           ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Annuler'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Clôturer malgré tout'),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final ready = ref.watch(syncServiceProvider).isReady;
+    final s = Strings.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Caisse')),
+      appBar: AppBar(title: Text(s.posTitle)),
       body: !ready
-          ? const Center(
+          ? Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
+                padding: const EdgeInsets.all(24),
                 child: Text(
-                  'Base locale non initialisée sur cette plateforme.',
+                  s.localDbNotInitialized,
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -218,19 +228,20 @@ class _NoSessionView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = Strings.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Aucune session de caisse ouverte.'),
+            Text(s.noOpenSession),
             const SizedBox(height: 16),
             PermissionGate(
               permission: Permissions.posSell,
               child: FilledButton.icon(
                 icon: const Icon(Icons.point_of_sale),
-                label: const Text('Ouvrir la caisse'),
+                label: Text(s.openCashSession),
                 onPressed: onOpen,
               ),
             ),
@@ -266,6 +277,7 @@ class _CheckoutView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final s = Strings.of(context);
     return Column(
       children: [
         Padding(
@@ -275,10 +287,10 @@ class _CheckoutView extends ConsumerWidget {
               Expanded(
                 child: TextField(
                   controller: searchController,
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.qr_code_scanner),
-                    labelText: 'Scanner / chercher un produit',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.qr_code_scanner),
+                    labelText: s.searchOrScanProduct,
+                    border: const OutlineInputBorder(),
                   ),
                   onChanged: onSearchChanged,
                 ),
@@ -286,7 +298,7 @@ class _CheckoutView extends ConsumerWidget {
               const SizedBox(width: 8),
               IconButton.filledTonal(
                 icon: const Icon(Icons.camera_alt_outlined),
-                tooltip: 'Scanner avec la caméra',
+                tooltip: s.scanWithCamera,
                 onPressed: () async {
                   final code = await showBarcodeScannerSheet(context);
                   if (code == null) return;
@@ -299,7 +311,7 @@ class _CheckoutView extends ConsumerWidget {
                 permission: Permissions.posCashClose,
                 child: OutlinedButton(
                   onPressed: () => onCloseSession(sessionId),
-                  child: const Text('Clôturer'),
+                  child: Text(s.closeSession),
                 ),
               ),
             ],
@@ -334,7 +346,7 @@ class _CheckoutView extends ConsumerWidget {
         const Divider(height: 1),
         Expanded(
           child: cart.isEmpty
-              ? const Center(child: Text('Panier vide.'))
+              ? Center(child: Text(s.emptyCart))
               : ListView.builder(
                   itemCount: cart.lines.length,
                   itemBuilder: (context, i) {
@@ -373,7 +385,7 @@ class _CheckoutView extends ConsumerWidget {
                   permission: Permissions.posSell,
                   child: FilledButton.icon(
                     icon: const Icon(Icons.payments_outlined),
-                    label: const Text('Encaisser (espèces)'),
+                    label: Text(s.checkoutCash),
                     onPressed: cart.isEmpty
                         ? null
                         : () => onCheckout(sessionId),

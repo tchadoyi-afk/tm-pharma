@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
+import '../../core/i18n/strings.dart';
 import 'invoice_models.dart';
 import 'receipt_text.dart';
 
@@ -10,7 +11,7 @@ import 'receipt_text.dart';
 /// thermique — utilisé quand aucun pilote ESC/POS natif n'est branché
 /// (l'imprimante thermique est alors gérée comme une imprimante système
 /// classique via la boîte de dialogue d'impression).
-Future<Uint8List> buildThermalTicketPdf(InvoiceData invoice) async {
+Future<Uint8List> buildThermalTicketPdf(InvoiceData invoice, Strings s) async {
   final doc = pw.Document();
   const width = PdfPageFormat(
     58 * PdfPageFormat.mm,
@@ -33,7 +34,7 @@ Future<Uint8List> buildThermalTicketPdf(InvoiceData invoice) async {
 }
 
 /// Génère le PDF couleur d'une facture (logo pharmacie si fourni).
-Future<Uint8List> buildInvoicePdf(InvoiceData invoice) async {
+Future<Uint8List> buildInvoicePdf(InvoiceData invoice, Strings s) async {
   final doc = pw.Document();
   doc.addPage(
     pw.Page(
@@ -71,7 +72,7 @@ Future<Uint8List> buildInvoicePdf(InvoiceData invoice) async {
           ),
           pw.SizedBox(height: 16),
           pw.Text(
-            'Facture ${invoice.invoiceNumber}',
+            s.invoiceNumberLabel(invoice.invoiceNumber),
             style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
           ),
           pw.Text(invoice.issuedAt.toIso8601String()),
@@ -87,10 +88,10 @@ Future<Uint8List> buildInvoicePdf(InvoiceData invoice) async {
             children: [
               pw.TableRow(
                 children: [
-                  _cell('Produit', bold: true),
-                  _cell('Qté', bold: true),
-                  _cell('Prix unit.', bold: true),
-                  _cell('Sous-total', bold: true),
+                  _cell(s.pdfColumnProduct, bold: true),
+                  _cell(s.pdfColumnQty, bold: true),
+                  _cell(s.pdfColumnUnitPrice, bold: true),
+                  _cell(s.pdfColumnSubtotal, bold: true),
                 ],
               ),
               for (final line in invoice.lines)
@@ -108,7 +109,10 @@ Future<Uint8List> buildInvoicePdf(InvoiceData invoice) async {
           pw.Align(
             alignment: pw.Alignment.centerRight,
             child: pw.Text(
-              'TOTAL : ${invoice.total.toStringAsFixed(0)} ${invoice.pharmacy.currency}',
+              s.invoiceTotal(
+                invoice.total.toStringAsFixed(0),
+                invoice.pharmacy.currency,
+              ),
               style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
             ),
           ),

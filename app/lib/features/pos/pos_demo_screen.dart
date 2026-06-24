@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/sync/sync_service.dart';
 import 'pos_repository.dart';
 
@@ -17,16 +18,16 @@ class PosDemoScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final ready = ref.watch(syncServiceProvider).isReady;
+    final s = Strings.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Démo vente offline')),
+      appBar: AppBar(title: Text(s.posDemoTitle)),
       body: !ready
-          ? const Center(
+          ? Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
+                padding: const EdgeInsets.all(24),
                 child: Text(
-                  'Base locale non initialisée sur cette plateforme.\n'
-                  'Lancer sur Android/Web configuré pour tester.',
+                  s.localDbNotInitializedAndroidWeb,
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -52,7 +53,7 @@ class PosDemoScreen extends ConsumerWidget {
                                 style: theme.textTheme.displayMedium,
                               ),
                               Text(
-                                'ventes en base locale',
+                                s.salesInLocalDb,
                                 style: theme.textTheme.bodyMedium,
                               ),
                             ],
@@ -62,16 +63,16 @@ class PosDemoScreen extends ConsumerWidget {
                       const SizedBox(height: 32),
                       FilledButton.icon(
                         icon: const Icon(Icons.point_of_sale),
-                        label: const Text('Créer une vente de test'),
+                        label: Text(s.createTestSale),
                         onPressed: () async {
                           await ref
                               .read(posRepositoryProvider)
                               .createDemoSale(tenantId: _demoTenantId);
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
+                              SnackBar(
                                 content: Text(
-                                  'Vente enregistrée en local, en file de synchro',
+                                  s.saleRecordedLocallyQueued,
                                 ),
                               ),
                             );
@@ -80,8 +81,7 @@ class PosDemoScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Fonctionne sans réseau. La synchro se fera dès qu\'une '
-                        'instance Supabase + PowerSync sera configurée et connectée.',
+                        s.offlineWorksHint,
                         textAlign: TextAlign.center,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,

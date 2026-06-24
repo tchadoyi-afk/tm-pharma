@@ -56,9 +56,9 @@ class HomeScreen extends ConsumerWidget {
                   Text(s.language, style: theme.textTheme.labelLarge),
                   const SizedBox(height: 8),
                   SegmentedButton<String>(
-                    segments: const [
-                      ButtonSegment(value: 'fr', label: Text('Français')),
-                      ButtonSegment(value: 'en', label: Text('English')),
+                    segments: [
+                      ButtonSegment(value: 'fr', label: Text(s.languageFr)),
+                      ButtonSegment(value: 'en', label: Text(s.languageEn)),
                     ],
                     selected: {locale.languageCode},
                     onSelectionChanged: (sel) => ref
@@ -94,7 +94,7 @@ class HomeScreen extends ConsumerWidget {
                     permission: Permissions.stockView,
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.dashboard_outlined),
-                      label: const Text('Tableau de bord'),
+                      label: Text(s.navDashboard),
                       onPressed: () => context.go('/dashboard'),
                     ),
                   ),
@@ -103,14 +103,14 @@ class HomeScreen extends ConsumerWidget {
                     permission: Permissions.posSell,
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.point_of_sale),
-                      label: const Text('Caisse'),
+                      label: Text(s.navPos),
                       onPressed: () => context.go('/pos'),
                     ),
                   ),
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
                     icon: const Icon(Icons.point_of_sale),
-                    label: const Text('Démo vente offline'),
+                    label: Text(s.navPosDemo),
                     onPressed: () => context.go('/pos-demo'),
                   ),
                   const SizedBox(height: 12),
@@ -118,7 +118,7 @@ class HomeScreen extends ConsumerWidget {
                     permission: Permissions.stockView,
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.medication_outlined),
-                      label: const Text('Catalogue produits'),
+                      label: Text(s.navCatalog),
                       onPressed: () => context.go('/catalog'),
                     ),
                   ),
@@ -127,7 +127,7 @@ class HomeScreen extends ConsumerWidget {
                     permission: Permissions.stockView,
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.inventory_2_outlined),
-                      label: const Text('Stocks'),
+                      label: Text(s.navStock),
                       onPressed: () => context.go('/stock'),
                     ),
                   ),
@@ -136,7 +136,7 @@ class HomeScreen extends ConsumerWidget {
                     permission: Permissions.stockView,
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.local_shipping_outlined),
-                      label: const Text('Fournisseurs'),
+                      label: Text(s.navSuppliers),
                       onPressed: () => context.go('/suppliers'),
                     ),
                   ),
@@ -145,7 +145,7 @@ class HomeScreen extends ConsumerWidget {
                     permission: Permissions.settingsManage,
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.rocket_launch_outlined),
-                      label: const Text('Assistant d\'onboarding'),
+                      label: Text(s.navOnboarding),
                       onPressed: () => context.go('/onboarding'),
                     ),
                   ),
@@ -154,7 +154,7 @@ class HomeScreen extends ConsumerWidget {
                     permission: Permissions.userManage,
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.admin_panel_settings_outlined),
-                      label: const Text('Permissions & rôles'),
+                      label: Text(s.navRoles),
                       onPressed: () => context.go('/admin/roles'),
                     ),
                   ),
@@ -163,7 +163,7 @@ class HomeScreen extends ConsumerWidget {
                     permission: Permissions.settingsManage,
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.store_outlined),
-                      label: const Text('Paramètres de la pharmacie'),
+                      label: Text(s.navPharmacySettings),
                       onPressed: () => context.go('/admin/pharmacy-settings'),
                     ),
                   ),
@@ -172,7 +172,7 @@ class HomeScreen extends ConsumerWidget {
                     permission: Permissions.stockAdjust,
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.event_busy_outlined),
-                      label: const Text('Péremptions & sorties'),
+                      label: Text(s.navLifecycle),
                       onPressed: () => context.go('/lifecycle'),
                     ),
                   ),
@@ -181,7 +181,7 @@ class HomeScreen extends ConsumerWidget {
                     permission: Permissions.priceEdit,
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.local_offer_outlined),
-                      label: const Text('Promotions'),
+                      label: Text(s.navPromotions),
                       onPressed: () => context.go('/promotions'),
                     ),
                   ),
@@ -190,7 +190,7 @@ class HomeScreen extends ConsumerWidget {
                     permission: Permissions.purchaseOrder,
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.shopping_cart_outlined),
-                      label: const Text('Suggestions de réappro'),
+                      label: Text(s.navReorder),
                       onPressed: () => context.go('/reorder'),
                     ),
                   ),
@@ -199,7 +199,7 @@ class HomeScreen extends ConsumerWidget {
                     permission: Permissions.purchaseOrder,
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.receipt_long_outlined),
-                      label: const Text('Bons de commande'),
+                      label: Text(s.navPurchaseOrders),
                       onPressed: () => context.go('/purchase-orders'),
                     ),
                   ),
@@ -208,7 +208,7 @@ class HomeScreen extends ConsumerWidget {
                     permission: Permissions.auditViewOwn,
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.history_outlined),
-                      label: const Text('Journal d\'audit'),
+                      label: Text(s.navAudit),
                       onPressed: () => context.go('/audit'),
                     ),
                   ),
@@ -217,7 +217,7 @@ class HomeScreen extends ConsumerWidget {
                     permission: Permissions.aiAssistantUse,
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.smart_toy_outlined),
-                      label: const Text('Assistant IA'),
+                      label: Text(s.navAssistant),
                       onPressed: () => context.go('/assistant'),
                     ),
                   ),

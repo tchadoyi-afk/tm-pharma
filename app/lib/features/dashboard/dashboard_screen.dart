@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/rbac/permission_gate.dart';
 import '../../core/rbac/permissions.dart';
 import '../../core/sync/sync_service.dart';
@@ -18,15 +19,16 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ready = ref.watch(syncServiceProvider).isReady;
+    final s = Strings.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Tableau de bord')),
+      appBar: AppBar(title: Text(s.dashboardTitle)),
       body: !ready
-          ? const Center(
+          ? Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
+                padding: const EdgeInsets.all(24),
                 child: Text(
-                  'Base locale non initialisée sur cette plateforme.',
+                  s.localDbNotInitialized,
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -44,15 +46,15 @@ class DashboardScreen extends ConsumerWidget {
                     PermissionGate(
                       permission: Permissions.reportFinancialView,
                       child: _Section(
-                        title: 'Direction — KPI financiers',
+                        title: s.sectionDirectionFinancialKpis,
                         cards: [
-                          _Kpi('Ventes du jour', '${kpis.salesTodayCount}'),
+                          _Kpi(s.kpiSalesToday, '${kpis.salesTodayCount}'),
                           _Kpi(
-                            'CA du jour',
+                            s.kpiRevenueToday,
                             '${kpis.salesTodayTotal.toStringAsFixed(0)} XOF',
                           ),
                           _Kpi(
-                            'Valeur du stock',
+                            s.kpiStockValue,
                             '${kpis.stockValue.toStringAsFixed(0)} XOF',
                           ),
                         ],
@@ -61,11 +63,11 @@ class DashboardScreen extends ConsumerWidget {
                     PermissionGate(
                       permission: Permissions.stockView,
                       child: _Section(
-                        title: 'Pharmacien — stock & péremptions',
+                        title: s.sectionPharmacistStock,
                         cards: [
-                          _Kpi('Produits sous le seuil', '${kpis.lowStockCount}'),
+                          _Kpi(s.kpiLowStockCount, '${kpis.lowStockCount}'),
                           _Kpi(
-                            'Lots périment <30j',
+                            s.kpiExpiringSoon,
                             '${kpis.expiringSoonCount}',
                           ),
                         ],
@@ -73,10 +75,10 @@ class DashboardScreen extends ConsumerWidget {
                     ),
                     PermissionGate(
                       permission: Permissions.posSell,
-                      child: const _Section(
-                        title: 'Caissier',
-                        cards: [],
-                        trailingHint: 'Voir « Caisse » pour le détail de la session du jour.',
+                      child: _Section(
+                        title: s.sectionCashier,
+                        cards: const [],
+                        trailingHint: s.seeCashierForDetail,
                       ),
                     ),
                   ],

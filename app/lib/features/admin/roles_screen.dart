@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/config/env.dart';
+import '../../core/i18n/strings.dart';
 import '../../core/rbac/permissions.dart';
 import 'roles_repository.dart';
 
@@ -16,20 +17,21 @@ class RolesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final s = Strings.of(context);
     final modules = <String>{
       for (final p in permissionCatalog) p.module,
     }.toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Permissions & rôles')),
+      appBar: AppBar(title: Text(s.rolesTitle)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text('Rôles', style: theme.textTheme.titleMedium),
+          Text(s.roles, style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
           _RolesSection(),
           const Divider(height: 32),
-          Text('Permissions disponibles', style: theme.textTheme.titleMedium),
+          Text(s.availablePermissions, style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
           for (final module in modules)
             _ModuleCard(
@@ -47,24 +49,22 @@ class RolesScreen extends ConsumerWidget {
 class _RolesSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final s = Strings.of(context);
     if (!Env.isConfigured) {
-      return const Card(
+      return Card(
         child: ListTile(
-          leading: Icon(Icons.info_outline),
-          title: Text('Mode local'),
-          subtitle: Text(
-            'La création de rôles et l\'assignation des permissions seront '
-            'actives une fois Supabase configuré.',
-          ),
+          leading: const Icon(Icons.info_outline),
+          title: Text(s.localMode),
+          subtitle: Text(s.localModeRolesHint),
         ),
       );
     }
     final roles = ref.watch(rolesProvider);
     return roles.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Text('Erreur : $e'),
+      error: (e, _) => Text(s.errorWith(e)),
       data: (list) => list.isEmpty
-          ? const Text('Aucun rôle pour le moment.')
+          ? Text(s.noRoleYet)
           : Column(
               children: [
                 for (final r in list)
@@ -72,7 +72,7 @@ class _RolesSection extends ConsumerWidget {
                     child: ListTile(
                       leading: const Icon(Icons.badge_outlined),
                       title: Text(r.name),
-                      subtitle: r.isSystem ? const Text('Rôle système') : null,
+                      subtitle: r.isSystem ? Text(s.systemRole) : null,
                     ),
                   ),
               ],
@@ -88,10 +88,11 @@ class _ModuleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = Strings.of(context);
     return Card(
       child: ExpansionTile(
         title: Text(module),
-        subtitle: Text('${permissions.length} permission(s)'),
+        subtitle: Text(s.permissionCount(permissions.length)),
         children: [
           for (final p in permissions)
             ListTile(

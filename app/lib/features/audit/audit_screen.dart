@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/auth/auth_repository.dart';
+import '../../core/i18n/strings.dart';
 import '../../core/rbac/permissions.dart';
 import '../../core/rbac/rbac_providers.dart';
 import '../../core/sync/sync_service.dart';
@@ -23,25 +24,26 @@ class AuditScreen extends ConsumerWidget {
     final canExport = watchCan(ref, Permissions.traceExport);
     final currentUserId = ref.watch(authRepositoryProvider).currentUser?.id;
     final scopeUserId = canViewAll ? null : currentUserId;
+    final s = Strings.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Journal d\'audit'),
+        title: Text(s.auditTitle),
         actions: [
           if (canExport)
             IconButton(
               icon: const Icon(Icons.ios_share_outlined),
-              tooltip: 'Exporter en CSV',
+              tooltip: s.exportCsv,
               onPressed: () => _export(context, ref, scopeUserId),
             ),
         ],
       ),
       body: !ready
-          ? const Center(
+          ? Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
+                padding: const EdgeInsets.all(24),
                 child: Text(
-                  'Base locale non initialisée sur cette plateforme.',
+                  s.localDbNotInitialized,
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -53,7 +55,7 @@ class AuditScreen extends ConsumerWidget {
               builder: (context, snap) {
                 final entries = snap.data ?? const [];
                 if (entries.isEmpty) {
-                  return const Center(child: Text('Aucune action journalisée.'));
+                  return Center(child: Text(s.noActionLogged));
                 }
                 return ListView.builder(
                   itemCount: entries.length,
@@ -92,7 +94,7 @@ class AuditScreen extends ConsumerWidget {
     await Clipboard.setData(ClipboardData(text: csv));
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Export CSV copié dans le presse-papier.')),
+        SnackBar(content: Text(Strings.of(context).csvExportCopied)),
       );
     }
   }
