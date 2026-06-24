@@ -13,7 +13,7 @@ create extension if not exists pgcrypto;      -- gen_random_uuid(), digest()
 create schema if not exists private;
 
 -- ----------------------------------------------------------------------------
--- Helpers communs
+-- Helper commun (ne dépend d'aucune table métier, peut être créé tôt).
 -- ----------------------------------------------------------------------------
 
 -- Met à jour updated_at à chaque UPDATE.
@@ -23,24 +23,6 @@ begin
   new.updated_at := now();
   return new;
 end;
-$$;
-
--- tenant_id de l'utilisateur courant (depuis son profil applicatif).
-create or replace function private.current_tenant_id()
-returns uuid language sql stable security definer set search_path = '' as $$
-  select u.tenant_id from public.users u where u.id = auth.uid()
-$$;
-
--- L'utilisateur courant possède-t-il la permission <p_code> ?
-create or replace function private.has_permission(p_code text)
-returns boolean language sql stable security definer set search_path = '' as $$
-  select exists (
-    select 1
-    from public.user_roles ur
-    join public.role_permissions rp on rp.role_id = ur.role_id
-    where ur.user_id = auth.uid()
-      and rp.permission_code = p_code
-  )
 $$;
 
 -- ----------------------------------------------------------------------------
@@ -76,6 +58,12 @@ create table public.users (
 create index idx_users_tenant on public.users(tenant_id);
 create trigger trg_users_updated before update on public.users
   for each row execute function public.set_updated_at();
+
+-- tenant_id de l'utilisateur courant (depuis son profil applicatif).
+create or replace function private.current_tenant_id()
+returns uuid language sql stable security definer set search_path = '' as $$
+  select u.tenant_id from public.users u where u.id = auth.uid()
+$$;
 
 -- ----------------------------------------------------------------------------
 -- RBAC : permissions (catalogue global), roles, role_permissions, user_roles
@@ -117,6 +105,18 @@ create table public.user_roles (
   primary key (user_id, role_id)
 );
 create index idx_user_roles_tenant on public.user_roles(tenant_id);
+
+-- L'utilisateur courant possède-t-il la permission <p_code> ?
+create or replace function private.has_permission(p_code text)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1
+    from public.user_roles ur
+    join public.role_permissions rp on rp.role_id = ur.role_id
+    where ur.user_id = auth.uid()
+      and rp.permission_code = p_code
+  )
+$$;
 
 -- ----------------------------------------------------------------------------
 -- Table : pharmacy_settings (identité légale + logo + facturation)
