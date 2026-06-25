@@ -65,6 +65,10 @@ services:
       GOTRUE_JWT_SECRET: ${JWT_SECRET:-changeme-32-caracteres-minimum}
       GOTRUE_JWT_EXP: "3600"
       GOTRUE_DISABLE_SIGNUP: "false"
+      # Confirmation par e-mail désactivée pour le pilote (pas de service
+      # mail configuré) : les comptes créés sont actifs immédiatement. À
+      # réactiver avant toute mise en production réelle.
+      GOTRUE_MAILER_AUTOCONFIRM: "true"
       # Vu de l'extérieur, l'Auth est servie via Kong sous /auth/v1 (même URL
       # de base que le reste de l'API, comme sur Supabase Cloud).
       API_EXTERNAL_URL: ${AUTH_EXTERNAL_URL:-http://localhost:8000/auth/v1}
