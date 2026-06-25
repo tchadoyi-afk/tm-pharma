@@ -69,6 +69,11 @@ services:
       # mail configuré) : les comptes créés sont actifs immédiatement. À
       # réactiver avant toute mise en production réelle.
       GOTRUE_MAILER_AUTOCONFIRM: "true"
+      # Politique de mot de passe : >= 8 caractères, au moins une minuscule,
+      # une majuscule, un chiffre et un caractère spécial (4 classes, chacune
+      # vérifiée par GoTrue via GOTRUE_PASSWORD_REQUIRED_CHARACTERS).
+      GOTRUE_PASSWORD_MIN_LENGTH: "8"
+      GOTRUE_PASSWORD_REQUIRED_CHARACTERS: "abcdefghijklmnopqrstuvwxyz:ABCDEFGHIJKLMNOPQRSTUVWXYZ:0123456789:!@#$%^&*()_+-=[]{}|;:,.<>?"
       # Vu de l'extérieur, l'Auth est servie via Kong sous /auth/v1 (même URL
       # de base que le reste de l'API, comme sur Supabase Cloud).
       API_EXTERNAL_URL: ${AUTH_EXTERNAL_URL:-http://localhost:8000/auth/v1}
