@@ -2,21 +2,29 @@
 -- TM Pharma — Bootstrap d'un compte administrateur pilote.
 -- À exécuter manuellement une seule fois sur la base self-hébergée, APRÈS
 -- les migrations (supabase/migrations/) :
---   psql -v admin_password="'<mot-de-passe-ici>'" -f seed_admin.sql
+--   psql -v admin_password="<mot-de-passe-ici>" -f seed_admin.sql
 -- (mot de passe passé en variable psql, jamais en dur dans ce fichier ni
 -- dans git — choisir une valeur respectant la politique GOTRUE_PASSWORD_*.)
 -- Insertion directe dans auth.users : pas d'appel à GoTrue ici, donc cette
 -- politique n'est pas vérifiée automatiquement par ce script. À changer
 -- dès la première connexion (cf. consigne initiale).
+-- psql ne substitue pas les variables :nom à l'intérieur d'un bloc
+-- dollar-quoté (do $$ ... $$) : le mot de passe est donc déposé dans une
+-- table temporaire en dehors du bloc, puis lu à l'intérieur.
 -- ============================================================================
+
+create temporary table _seed_admin_input (password text);
+insert into _seed_admin_input (password) values (:'admin_password');
 
 do $$
 declare
   v_tenant_id uuid;
   v_user_id   uuid := gen_random_uuid();
   v_role_id   uuid;
-  v_password  text := :admin_password;
+  v_password  text;
 begin
+  select password into v_password from _seed_admin_input;
+
   insert into public.tenants (name, slug, status)
   values ('Pharmacie pilote', 'pharmacie-pilote', 'TRIAL')
   returning id into v_tenant_id;
@@ -45,3 +53,5 @@ begin
   insert into public.user_roles (user_id, role_id, tenant_id)
   values (v_user_id, v_role_id, v_tenant_id);
 end $$;
+
+drop table _seed_admin_input;
